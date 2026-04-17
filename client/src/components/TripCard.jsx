@@ -4,13 +4,13 @@ import { formatDate, formatBudget } from '../utils/itineraryHelpers.js';
 import CollabAvatars from './CollabAvatars.jsx';
 
 export default function TripCard({ trip, onEdit, onDelete, currentUserId }) {
-  const isOwner = trip.owner === currentUserId || trip.owner?._id === currentUserId;
+  const isOwner = trip.createdBy === currentUserId || trip.createdBy?._id === currentUserId;
 
   return (
     <div className="trip-card card">
       <Link to={`/trips/${trip._id}`} className="trip-card-body card-body" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
         <div className="trip-card-header">
-          <h3 className="trip-card-title">{trip.name}</h3>
+          <h3 className="trip-card-title">{trip.title}</h3>
           {trip.isPublic && <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Public</span>}
         </div>
         {trip.destination && (
@@ -27,10 +27,10 @@ export default function TripCard({ trip, onEdit, onDelete, currentUserId }) {
             </span>
           </div>
         )}
-        {trip.totalBudget !== undefined && (
+        {trip.budget?.total !== undefined && (
           <div className="trip-meta-row">
             <DollarSign size={14} className="icon-muted" />
-            <span>{formatBudget(trip.totalBudget, trip.currency)}</span>
+            <span>{formatBudget(trip.budget?.total, trip.budget?.currency)}</span>
           </div>
         )}
         {trip.members && trip.members.length > 0 && (

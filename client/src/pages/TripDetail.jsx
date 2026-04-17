@@ -33,14 +33,14 @@ export default function TripDetail() {
 
   useEffect(() => { fetchTrip(); }, [id]);
 
-  const isOwner = trip && (trip.owner === user?._id || trip.owner?._id === user?._id);
+  const isOwner = trip && (trip.createdBy === user?._id || trip.createdBy?._id === user?._id);
 
   const openEdit = () => {
     setEditForm({
-      name: trip.name || '', destination: trip.destination || '',
+      name: trip.title || '', destination: trip.destination || '',
       startDate: trip.startDate ? trip.startDate.slice(0, 10) : '',
       endDate: trip.endDate ? trip.endDate.slice(0, 10) : '',
-      totalBudget: trip.totalBudget || '', description: trip.description || '',
+      totalBudget: trip.budget?.total || '', description: trip.description || '',
     });
     setShowEdit(true);
   };
@@ -101,11 +101,11 @@ export default function TripDetail() {
           </Link>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
             <div>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>{trip.name}</h1>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>{trip.title}</h1>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.88rem', opacity: 0.9 }}>
                 {trip.destination && <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><MapPin size={14} />{trip.destination}</span>}
                 {trip.startDate && <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Calendar size={14} />{formatDate(trip.startDate)}{trip.endDate ? ` – ${formatDate(trip.endDate)}` : ''}</span>}
-                {trip.totalBudget && <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><DollarSign size={14} />{formatBudget(trip.totalBudget)}</span>}
+                {trip.budget?.total && <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><DollarSign size={14} />{formatBudget(trip.budget?.total)}</span>}
                 {members.length > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Users size={14} />{members.length} member{members.length !== 1 ? 's' : ''} <CollabAvatars members={members} size={24} /></span>}
               </div>
             </div>
@@ -142,7 +142,7 @@ export default function TripDetail() {
               </div>
               <div className="card card-body">
                 <div style={{ fontSize: '0.78rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>Budget</div>
-                <div style={{ fontWeight: 700, color: '#10b981' }}>{trip.totalBudget ? formatBudget(trip.totalBudget) : 'Not set'}</div>
+                <div style={{ fontWeight: 700, color: '#10b981' }}>{trip.budget?.total ? formatBudget(trip.budget?.total) : 'Not set'}</div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -182,7 +182,7 @@ export default function TripDetail() {
                 <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>No members yet. Invite people to collaborate!</p>
               ) : members.map((m, i) => {
                 const name = m.username || m.name || m.email || '';
-                const isOwnerMember = trip.owner === m._id || trip.owner?._id === m._id;
+                const isOwnerMember = trip.createdBy === m._id || trip.createdBy?._id === m._id;
                 return (
                   <div key={m._id || i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                     <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#dbeafe', color: '#2563eb', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

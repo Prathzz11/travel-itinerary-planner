@@ -28,7 +28,7 @@ export default function ForkModal({ itinerary, onClose, onSuccess }) {
 
   const validate1 = () => {
     const errs = {};
-    if (!form.name.trim()) errs.name = 'Trip name is required';
+    if (!form.title.trim()) errs.name = 'Trip name is required';
     if (!form.startDate) errs.startDate = 'Start date is required';
     if (!form.endDate) errs.endDate = 'End date is required';
     if (form.startDate && form.endDate && form.endDate < form.startDate) errs.endDate = 'End date must be after start date';
@@ -51,7 +51,7 @@ export default function ForkModal({ itinerary, onClose, onSuccess }) {
         activities: (d.activities || []).filter((a) => selectedActivities[a._id || a.name]),
       }));
       const payload = {
-        name: form.name,
+        name: form.title,
         startDate: form.startDate,
         endDate: form.endDate,
         totalBudget: form.totalBudget ? Number(form.totalBudget) : undefined,
@@ -95,7 +95,7 @@ export default function ForkModal({ itinerary, onClose, onSuccess }) {
             <div className="fork-step">
               <div className="form-group">
                 <label>Trip Name *</label>
-                <input className={`input${errors.name ? ' error' : ''}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="My trip name" />
+                <input className={`input${errors.name ? ' error' : ''}`} value={form.title} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="My trip name" />
                 {errors.name && <div className="error-msg">{errors.name}</div>}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -161,7 +161,7 @@ export default function ForkModal({ itinerary, onClose, onSuccess }) {
                 <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Your new trip has been created successfully.</p>
               </div>
               <div className="fork-summary">
-                <div className="fork-summary-row"><span>Trip Name</span><span>{form.name}</span></div>
+                <div className="fork-summary-row"><span>Trip Name</span><span>{form.title}</span></div>
                 <div className="fork-summary-row"><span>Start Date</span><span>{form.startDate ? formatDate(form.startDate) : '–'}</span></div>
                 <div className="fork-summary-row"><span>End Date</span><span>{form.endDate ? formatDate(form.endDate) : '–'}</span></div>
                 {form.totalBudget && <div className="fork-summary-row"><span>Budget</span><span>{formatBudget(Number(form.totalBudget))}</span></div>}

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useTripContext } from '../context/TripContext.jsx';
 import TripCard from '../components/TripCard.jsx';
 
-const emptyForm = { name: '', destination: '', startDate: '', endDate: '', totalBudget: '', description: '' };
+const emptyForm = { title: '', destination: '', startDate: '', endDate: '', totalBudget: '', description: '' };
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -20,7 +20,7 @@ export default function Dashboard() {
 
   const validate = () => {
     const errs = {};
-    if (!form.name.trim()) errs.name = 'Trip name is required';
+    if (!form.title.trim()) errs.name = 'Trip name is required';
     if (form.startDate && form.endDate && form.endDate < form.startDate) errs.endDate = 'End date must be after start date';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -30,10 +30,10 @@ export default function Dashboard() {
   const openEdit = (trip) => {
     setEditTrip(trip);
     setForm({
-      name: trip.name || '', destination: trip.destination || '',
+      name: trip.title || trip.name || '', destination: trip.destination || '',
       startDate: trip.startDate ? trip.startDate.slice(0, 10) : '',
       endDate: trip.endDate ? trip.endDate.slice(0, 10) : '',
-      totalBudget: trip.totalBudget || '', description: trip.description || '',
+      totalBudget: trip.budget?.total || '', description: trip.description || '',
     });
     setErrors({});
     setShowModal(true);
@@ -139,7 +139,7 @@ export default function Dashboard() {
             <div className="modal-body">
               <div className="form-group">
                 <label>Trip Name *</label>
-                <input className={`input${errors.name ? ' error' : ''}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Summer Europe Adventure" />
+                <input className={`input${errors.name ? ' error' : ''}`} value={form.title} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Summer Europe Adventure" />
                 {errors.name && <div className="error-msg">{errors.name}</div>}
               </div>
               <div className="form-group">

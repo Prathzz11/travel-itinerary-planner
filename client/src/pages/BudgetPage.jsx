@@ -38,7 +38,7 @@ export default function BudgetPage() {
 
   const validate = () => {
     const errs = {};
-    if (!form.name.trim()) errs.name = 'Name is required';
+    if (!form.title.trim()) errs.name = 'Name is required';
     if (!form.amount || isNaN(form.amount) || Number(form.amount) <= 0) errs.amount = 'Enter a valid amount';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -142,7 +142,7 @@ export default function BudgetPage() {
             <div className="modal-body">
               <div className="form-group">
                 <label>Expense Name *</label>
-                <input className={`input${errors.name ? ' error' : ''}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Hotel Breakfast" />
+                <input className={`input${errors.name ? ' error' : ''}`} value={form.title} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Hotel Breakfast" />
                 {errors.name && <div className="error-msg">{errors.name}</div>}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

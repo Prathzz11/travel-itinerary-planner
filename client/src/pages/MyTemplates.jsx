@@ -75,7 +75,7 @@ export default function MyTemplates() {
               <div key={item._id} className="card" style={{ overflow: 'hidden' }}>
                 <div style={{ padding: '1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <h3 style={{ fontWeight: 700, fontSize: '1.02rem', lineHeight: 1.3 }}>{item.name}</h3>
+                    <h3 style={{ fontWeight: 700, fontSize: '1.02rem', lineHeight: 1.3 }}>{item.title}</h3>
                     <span className={`badge ${item.isPublic ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.7rem', flexShrink: 0 }}>
                       {item.isPublic ? 'Public' : 'Private'}
                     </span>

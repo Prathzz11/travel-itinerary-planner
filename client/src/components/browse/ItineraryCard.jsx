@@ -31,7 +31,7 @@ export default function ItineraryCard({ itinerary, onPreview }) {
     onPreview && onPreview(itinerary);
   };
 
-  const creator = itinerary.owner || itinerary.creator || {};
+  const creator = itinerary.createdBy || itinerary.createdBy || {};
   const creatorName = creator.username || creator.name || 'Unknown';
   const tags = itinerary.tags || [];
 
@@ -80,10 +80,10 @@ export default function ItineraryCard({ itinerary, onPreview }) {
             <GitFork size={12} />
             <span>{itinerary.forkCount || 0} forks</span>
           </span>
-          {itinerary.totalBudget > 0 && (
+          {itinerary.budget?.total > 0 && (
             <span className="card-budget">
               <DollarSign size={12} />
-              {formatBudget(itinerary.totalBudget, itinerary.currency)}
+              {formatBudget(itinerary.budget?.total, itinerary.budget?.currency)}
             </span>
           )}
         </div>

@@ -81,7 +81,7 @@ export default function ExistingItineraryDetail() {
     </div>
   );
 
-  const creator = itinerary.owner || itinerary.creator || {};
+  const creator = itinerary.createdBy || itinerary.createdBy || {};
   const creatorName = creator.username || creator.name || 'Unknown';
   const days = itinerary.days || [];
 
@@ -119,7 +119,7 @@ export default function ExistingItineraryDetail() {
             {itinerary.destination && <span><MapPin size={14} />{itinerary.destination}</span>}
             {itinerary.startDate && <span><Calendar size={14} />{formatDate(itinerary.startDate)}{itinerary.endDate ? ` – ${formatDate(itinerary.endDate)}` : ''}</span>}
             {itinerary.startDate && itinerary.endDate && <span>⏱ {formatDuration(itinerary.startDate, itinerary.endDate)}</span>}
-            {itinerary.totalBudget > 0 && <span><DollarSign size={14} />{formatBudget(itinerary.totalBudget, itinerary.currency)}</span>}
+            {itinerary.budget?.total > 0 && <span><DollarSign size={14} />{formatBudget(itinerary.budget?.total, itinerary.budget?.currency)}</span>}
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>{getAvatarInitials(creatorName)}</div>
               {creatorName}
@@ -173,10 +173,10 @@ export default function ExistingItineraryDetail() {
                 <h3 style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Rating</h3>
                 <RatingsDisplay rating={itinerary.averageRating || 0} reviewCount={itinerary.reviewCount || 0} size="lg" />
               </div>
-              {itinerary.totalBudget > 0 && (
+              {itinerary.budget?.total > 0 && (
                 <div className="card card-body">
                   <h3 style={{ fontWeight: 700, marginBottom: '0.75rem' }}>Budget Breakdown</h3>
-                  <div style={{ marginBottom: '0.75rem', fontWeight: 700, color: '#10b981', fontSize: '1.15rem' }}>{formatBudget(itinerary.totalBudget, itinerary.currency)}</div>
+                  <div style={{ marginBottom: '0.75rem', fontWeight: 700, color: '#10b981', fontSize: '1.15rem' }}>{formatBudget(itinerary.budget?.total, itinerary.budget?.currency)}</div>
                   <CategoryBreakdown />
                 </div>
               )}
@@ -193,7 +193,7 @@ export default function ExistingItineraryDetail() {
                 <h3 style={{ fontWeight: 700, color: '#2563eb', marginBottom: '0.75rem', fontSize: '1rem' }}>
                   Day {day.dayNumber || di + 1} {day.date ? `· ${formatDate(day.date)}` : ''}
                 </h3>
-                <ActivityTimeline activities={day.activities || []} currency={itinerary.currency} />
+                <ActivityTimeline activities={day.activities || []} currency={itinerary.budget?.currency} />
               </div>
             ))}
           </div>

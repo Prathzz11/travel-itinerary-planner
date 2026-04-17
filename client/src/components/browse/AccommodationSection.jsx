@@ -36,7 +36,7 @@ export default function AccommodationSection({ days = [], currency = 'USD' }) {
         <div key={item._id || idx} className="accommodation-card">
           <div className="accommodation-icon">{getAccommodationIcon(item.type)}</div>
           <div className="accommodation-info">
-            <h4>{item.name}</h4>
+            <h4>{item.title}</h4>
             {item.location && (
               <p style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', marginBottom: '0.2rem' }}>
                 <MapPin size={12} /> {item.location}

@@ -18,7 +18,7 @@ export default function ItineraryDay({ day, tripId, onUpdate }) {
   const openEdit = (act) => { setEditActivity(act); setForm({ name: act.name || '', type: act.type || 'activity', startTime: act.startTime || '', endTime: act.endTime || '', location: act.location || '', cost: act.cost || '', notes: act.notes || '' }); setShowModal(true); };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error('Activity name is required'); return; }
+    if (!form.title.trim()) { toast.error('Activity name is required'); return; }
     setSaving(true);
     try {
       const payload = { ...form, cost: form.cost ? Number(form.cost) : 0 };
@@ -97,7 +97,7 @@ export default function ItineraryDay({ day, tripId, onUpdate }) {
             <div className="modal-body">
               <div className="form-group">
                 <label>Activity Name *</label>
-                <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Visit Eiffel Tower" />
+                <input className="input" value={form.title} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Visit Eiffel Tower" />
               </div>
               <div className="form-group">
                 <label>Type</label>

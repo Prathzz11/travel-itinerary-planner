@@ -33,7 +33,7 @@ export default function ForkItinerary() {
     </div>
   );
 
-  const creator = itinerary.owner || itinerary.creator || {};
+  const creator = itinerary.createdBy || itinerary.createdBy || {};
   const creatorName = creator.username || creator.name || 'Unknown';
   const days = itinerary.days || [];
 
@@ -57,7 +57,7 @@ export default function ForkItinerary() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.88rem', color: '#64748b', marginBottom: '0.75rem' }}>
                 {itinerary.destination && <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><MapPin size={13} />{itinerary.destination}</span>}
                 {itinerary.startDate && <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Calendar size={13} />{formatDate(itinerary.startDate)}{itinerary.endDate ? ` – ${formatDate(itinerary.endDate)}` : ''} · {formatDuration(itinerary.startDate, itinerary.endDate)}</span>}
-                {itinerary.totalBudget > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#10b981', fontWeight: 600 }}><DollarSign size={13} />{formatBudget(itinerary.totalBudget, itinerary.currency)}</span>}
+                {itinerary.budget?.total > 0 && <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#10b981', fontWeight: 600 }}><DollarSign size={13} />{formatBudget(itinerary.budget?.total, itinerary.budget?.currency)}</span>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#dbeafe', color: '#2563eb', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{getAvatarInitials(creatorName)}</div>

@@ -17,7 +17,7 @@ export default function ItineraryPreview({ itinerary, onClose }) {
 
   if (!itinerary) return null;
 
-  const creator = itinerary.owner || itinerary.creator || {};
+  const creator = itinerary.createdBy || itinerary.createdBy || {};
   const creatorName = creator.username || creator.name || 'Unknown';
   const days = itinerary.days || [];
 
@@ -53,9 +53,9 @@ export default function ItineraryPreview({ itinerary, onClose }) {
                 <Calendar size={13} /> {formatDate(itinerary.startDate)} – {formatDate(itinerary.endDate)} · {formatDuration(itinerary.startDate, itinerary.endDate)}
               </span>
             )}
-            {itinerary.totalBudget > 0 && (
+            {itinerary.budget?.total > 0 && (
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#10b981', fontWeight: 600 }}>
-                <DollarSign size={13} /> {formatBudget(itinerary.totalBudget, itinerary.currency)}
+                <DollarSign size={13} /> {formatBudget(itinerary.budget?.total, itinerary.budget?.currency)}
               </span>
             )}
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
