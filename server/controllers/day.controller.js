@@ -78,9 +78,17 @@ const updateDay = async (req, res, next) => {
     const { error, status } = await verifyTripAccess(tripId, req.user._id, true);
     if (error) return res.status(status).json({ message: error });
 
+    // Whitelist allowed fields to prevent NoSQL injection via req.body
+    const { dayNumber, date, title, notes } = req.body;
+    const allowedUpdates = {};
+    if (dayNumber !== undefined) allowedUpdates.dayNumber = dayNumber;
+    if (date !== undefined) allowedUpdates.date = date;
+    if (title !== undefined) allowedUpdates.title = title;
+    if (notes !== undefined) allowedUpdates.notes = notes;
+
     const day = await Day.findOneAndUpdate(
       { _id: dayId, tripId },
-      { $set: req.body },
+      { $set: allowedUpdates },
       { new: true, runValidators: true }
     );
 

@@ -92,9 +92,27 @@ const updateActivity = async (req, res, next) => {
     const { error, status } = await verifyTripAccess(tripId, req.user._id, true);
     if (error) return res.status(status).json({ message: error });
 
+    // Whitelist allowed fields to prevent NoSQL injection via req.body
+    const {
+      title, location, description, startTime, endTime,
+      type, cost, currency, coordinates, photoUrl, order,
+    } = req.body;
+    const allowedUpdates = {};
+    if (title !== undefined) allowedUpdates.title = title;
+    if (location !== undefined) allowedUpdates.location = location;
+    if (description !== undefined) allowedUpdates.description = description;
+    if (startTime !== undefined) allowedUpdates.startTime = startTime;
+    if (endTime !== undefined) allowedUpdates.endTime = endTime;
+    if (type !== undefined) allowedUpdates.type = type;
+    if (cost !== undefined) allowedUpdates.cost = cost;
+    if (currency !== undefined) allowedUpdates.currency = currency;
+    if (coordinates !== undefined) allowedUpdates.coordinates = coordinates;
+    if (photoUrl !== undefined) allowedUpdates.photoUrl = photoUrl;
+    if (order !== undefined) allowedUpdates.order = order;
+
     const activity = await Activity.findOneAndUpdate(
       { _id: activityId, dayId, tripId },
-      { $set: req.body },
+      { $set: allowedUpdates },
       { new: true, runValidators: true }
     );
 

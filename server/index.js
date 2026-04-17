@@ -4,6 +4,7 @@ const express = require('express');
 const http = require('http');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
 const authRoutes = require('./routes/auth.routes');
 const tripRoutes = require('./routes/trip.routes');
@@ -25,15 +26,34 @@ app.use(
   })
 );
 
+// ─── Rate Limiting ────────────────────────────────────────────────────────────
+// Strict limit for auth routes to prevent brute-force attacks
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes' },
+});
+
+// General API limiter for all other routes
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes' },
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
-app.use('/api/trips', tripRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/trips', apiLimiter, tripRoutes);
 
 // Nested routes — day and activity routers use mergeParams: true
-app.use('/api/trips/:tripId/days', dayRoutes);
-app.use('/api/trips/:tripId/days/:dayId/activities', activityRoutes);
+app.use('/api/trips/:tripId/days', apiLimiter, dayRoutes);
+app.use('/api/trips/:tripId/days/:dayId/activities', apiLimiter, activityRoutes);
 
-app.use('/api/itineraries', itineraryRoutes);
+app.use('/api/itineraries', apiLimiter, itineraryRoutes);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
