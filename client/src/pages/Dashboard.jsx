@@ -139,7 +139,7 @@ export default function Dashboard() {
             <div className="modal-body">
               <div className="form-group">
                 <label>Trip Name *</label>
-                <input className={`input${errors.name ? ' error' : ''}`} value={form.title} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Summer Europe Adventure" />
+                <input className={`input${errors.name ? ' error' : ''}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Summer Europe Adventure" />
                 {errors.name && <div className="error-msg">{errors.name}</div>}
               </div>
               <div className="form-group">

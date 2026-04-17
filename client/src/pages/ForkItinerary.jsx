@@ -33,7 +33,7 @@ export default function ForkItinerary() {
     </div>
   );
 
-  const creator = itinerary.createdBy || itinerary.createdBy || {};
+  const creator = itinerary.createdBy || {};
   const creatorName = creator.username || creator.name || 'Unknown';
   const days = itinerary.days || [];
 

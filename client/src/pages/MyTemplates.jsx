@@ -123,7 +123,7 @@ export default function MyTemplates() {
         <div className="modal-overlay" onClick={() => setEditItem(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Edit Template: {editItem.name}</h2>
+              <h2>Edit Template: {editItem.title}</h2>
               <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setEditItem(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">

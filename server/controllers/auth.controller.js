@@ -87,13 +87,13 @@ const updateProfile = async (req, res, next) => {
   try {
     const { username, bio, profilePicture } = req.body;
 
-    // Build only the allowed fields
+    // Build only the allowed fields, coercing to strings to prevent operator injection
     const updates = {};
-    if (username !== undefined) updates.username = username;
-    if (bio !== undefined) updates.bio = bio;
-    if (profilePicture !== undefined) updates.profilePicture = profilePicture;
+    if (username !== undefined) updates.username = String(username);
+    if (bio !== undefined) updates.bio = String(bio);
+    if (profilePicture !== undefined) updates.profilePicture = String(profilePicture);
 
-    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+    const user = await User.findByIdAndUpdate(String(req.user._id), updates, {
       new: true,
       runValidators: true,
     });

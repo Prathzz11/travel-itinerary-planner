@@ -216,14 +216,21 @@ const addReview = async (req, res, next) => {
   try {
     const { rating, comment } = req.body;
 
-    if (!rating) return res.status(400).json({ message: 'Rating is required' });
+    // Coerce to expected types to prevent operator injection
+    const safeRating = Number(rating);
+    const safeComment = comment !== undefined ? String(comment) : undefined;
+
+    if (!safeRating) return res.status(400).json({ message: 'Rating is required' });
 
     const trip = await Trip.findById(req.params.id);
     if (!trip) return res.status(404).json({ message: 'Trip not found' });
 
+    const updateData = { rating: safeRating };
+    if (safeComment !== undefined) updateData.comment = safeComment;
+
     const review = await Review.findOneAndUpdate(
-      { tripId: trip._id, userId: req.user._id },
-      { rating, comment },
+      { tripId: trip._id, userId: String(req.user._id) },
+      updateData,
       { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
     );
 
