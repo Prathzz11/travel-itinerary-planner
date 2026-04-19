@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 const ErrorState = ({ 
@@ -8,66 +7,20 @@ const ErrorState = ({
   onRetry
 }) => {
   return (
-    <motion.div 
-      role="alert"
-      aria-live="assertive"
-      initial={{ opacity: 0, scale: 0.95 }} 
-      animate={{ opacity: 1, scale: 1 }} 
-      style={{ 
-        textAlign: 'center', 
-        padding: 'var(--space-8) var(--space-4)', 
-        color: 'var(--color-text-muted)', 
-        background: 'rgba(239, 68, 68, 0.1)', 
-        borderRadius: 'var(--radius-lg)', 
-        border: '1px solid rgba(239, 68, 68, 0.3)', 
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-    >
-      <div style={{ 
-        width: '64px', 
-        height: '64px', 
-        borderRadius: '50%', 
-        background: 'rgba(239, 68, 68, 0.2)', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        marginBottom: '24px'
-      }}>
+    <div role="alert" aria-live="assertive" className="text-center animate-fade-in p-5 rounded-3 w-100" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+      <div className="d-inline-flex align-items-center justify-content-center rounded-circle mb-4" style={{ width: 64, height: 64, background: 'rgba(239, 68, 68, 0.2)' }}>
         <AlertCircle size={32} color="var(--color-danger)" />
       </div>
       
-      <h3 style={{ fontSize: '1.5rem', color: 'var(--color-danger)', margin: '0 0 8px 0' }}>{title}</h3>
-      <p style={{ maxWidth: '400px', margin: '0 auto 24px', lineHeight: 1.6 }}>{message}</p>
+      <h3 className="fs-4 fw-semibold text-danger mb-2">{title}</h3>
+      <p className="text-muted mx-auto mb-4" style={{ maxWidth: 400, lineHeight: 1.6 }}>{message}</p>
       
       {onRetry && (
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onRetry}
-          style={{ 
-            background: 'var(--color-danger)', 
-            color: 'white', 
-            border: 'none', 
-            padding: '12px 24px', 
-            borderRadius: 'var(--radius-full)', 
-            fontSize: '1rem', 
-            fontWeight: 'bold', 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
-          }}
-        >
-          <RefreshCw size={18} />
-          Try Again
-        </motion.button>
+        <button className="btn btn-danger d-inline-flex align-items-center gap-2" onClick={onRetry}>
+          <RefreshCw size={18} /> Try Again
+        </button>
       )}
-    </motion.div>
+    </div>
   );
 };
 

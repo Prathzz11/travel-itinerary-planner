@@ -4,81 +4,64 @@ import { Compass, Globe, Code2, Camera, Mail } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer style={{
-      background: 'rgba(15, 23, 42, 0.8)',
-      backdropFilter: 'blur(10px)',
-      borderTop: '1px solid var(--color-border)',
-      padding: 'var(--space-8) var(--space-6)',
-      marginTop: 'auto'
-    }}>
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: 'var(--space-8)'
-      }}>
-        
-        {/* Brand Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}>
-            <Compass color="var(--color-primary)" size={28} />
-            <h2 className="text-gradient" style={{ margin: 0, fontSize: '1.25rem' }}>TravelSync</h2>
-          </Link>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
-            Plan, organize, and experience your dream vacations with powerful tools and an immersive 3D interface.
-          </p>
-          <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-            <a href="#" aria-label="Twitter / X" style={{ color: 'var(--color-text-muted)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color='var(--color-primary)'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}><Globe size={20} /></a>
-            <a href="#" aria-label="Instagram" style={{ color: 'var(--color-text-muted)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color='var(--color-secondary)'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}><Camera size={20} /></a>
-            <a href="#" aria-label="GitHub" style={{ color: 'var(--color-text-muted)', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color='white'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}><Code2 size={20} /></a>
+    <footer className="bg-dark border-top" style={{ borderColor: 'var(--color-border) !important' }}>
+      <div className="container py-5">
+        <div className="row g-4">
+          
+          {/* Brand Column */}
+          <div className="col-lg-3 col-md-6">
+            <Link to="/" className="d-flex align-items-center gap-2 mb-3 text-decoration-none">
+              <Compass color="var(--color-primary)" size={28} />
+              <h2 className="text-gradient mb-0 fs-5">TravelSync</h2>
+            </Link>
+            <p className="text-muted small mb-3">
+              Plan, organize, and experience your dream vacations with powerful collaborative tools.
+            </p>
+            <div className="d-flex gap-3">
+              <a href="#" aria-label="Website" className="text-muted"><Globe size={20} /></a>
+              <a href="#" aria-label="Instagram" className="text-muted"><Camera size={20} /></a>
+              <a href="#" aria-label="GitHub" className="text-muted"><Code2 size={20} /></a>
+            </div>
+          </div>
+
+          {/* Platform Links */}
+          <div className="col-lg-3 col-md-6">
+            <h3 className="fs-6 fw-semibold mb-3">Platform</h3>
+            <ul className="list-unstyled d-flex flex-column gap-2">
+              <li><Link to="/explore" className="text-muted small text-decoration-none">Explore Trips</Link></li>
+              <li><Link to="/dashboard" className="text-muted small text-decoration-none">Dashboard</Link></li>
+              <li><Link to="/create-trip" className="text-muted small text-decoration-none">Create Trip</Link></li>
+              <li><Link to="/profile" className="text-muted small text-decoration-none">My Profile</Link></li>
+            </ul>
+          </div>
+
+          {/* Company Links */}
+          <div className="col-lg-3 col-md-6">
+            <h3 className="fs-6 fw-semibold mb-3">Company</h3>
+            <ul className="list-unstyled d-flex flex-column gap-2">
+              <li><Link to="/about" className="text-muted small text-decoration-none">About Us</Link></li>
+              <li><Link to="/careers" className="text-muted small text-decoration-none">Careers</Link></li>
+              <li><Link to="/privacy" className="text-muted small text-decoration-none">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="text-muted small text-decoration-none">Terms of Service</Link></li>
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div className="col-lg-3 col-md-6">
+            <h3 className="fs-6 fw-semibold mb-3">Get in Touch</h3>
+            <p className="text-muted small mb-2">Have questions or want to partner with us?</p>
+            <a href="mailto:hello@travelsync.app" className="d-flex align-items-center gap-2 small fw-medium" style={{ color: 'var(--color-primary)' }}>
+              <Mail size={16} /> hello@travelsync.app
+            </a>
           </div>
         </div>
 
-        {/* Links Column 1 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '1rem', color: 'white' }}>Platform</h3>
-          <Link to="/explore" style={{ color: 'var(--color-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }} onMouseOver={e => e.currentTarget.style.color='var(--color-primary)'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}>Explore Trips</Link>
-          <Link to="/dashboard" style={{ color: 'var(--color-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }} onMouseOver={e => e.currentTarget.style.color='var(--color-primary)'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}>Dashboard</Link>
-          <Link to="/create-trip" style={{ color: 'var(--color-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }} onMouseOver={e => e.currentTarget.style.color='var(--color-primary)'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}>Create Trip</Link>
-          <Link to="/profile" style={{ color: 'var(--color-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }} onMouseOver={e => e.currentTarget.style.color='var(--color-primary)'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}>My Profile</Link>
-        </div>
-
-        {/* Links Column 2 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '1rem', color: 'white' }}>Company</h3>
-          <Link to="/about" style={{ color: 'var(--color-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }} onMouseOver={e => e.currentTarget.style.color='var(--color-primary)'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}>About Us</Link>
-          <Link to="/careers" style={{ color: 'var(--color-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }} onMouseOver={e => e.currentTarget.style.color='var(--color-primary)'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}>Careers</Link>
-          <Link to="/privacy" style={{ color: 'var(--color-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }} onMouseOver={e => e.currentTarget.style.color='var(--color-primary)'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}>Privacy Policy</Link>
-          <Link to="/terms" style={{ color: 'var(--color-text-muted)', textDecoration: 'none', fontSize: '0.9rem' }} onMouseOver={e => e.currentTarget.style.color='var(--color-primary)'} onMouseOut={e => e.currentTarget.style.color='var(--color-text-muted)'}>Terms of Service</Link>
-        </div>
-
-        {/* Contact Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '1rem', color: 'white' }}>Get in Touch</h3>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 0 }}>
-            Have questions or want to partner with us?
+        {/* Bottom bar */}
+        <div className="border-top mt-4 pt-4 text-center" style={{ borderColor: 'var(--color-border) !important' }}>
+          <p className="text-muted small mb-0">
+            &copy; {new Date().getFullYear()} TravelSync Inc. All rights reserved.
           </p>
-          <a href="mailto:hello@travelsync.app" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 500, marginTop: '8px' }}>
-            <Mail size={16} /> hello@travelsync.app
-          </a>
         </div>
-
-      </div>
-
-      <div style={{ 
-        maxWidth: '1200px', 
-        margin: 'var(--space-8) auto 0', 
-        paddingTop: 'var(--space-6)', 
-        borderTop: '1px solid rgba(255,255,255,0.05)', 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        textAlign: 'center'
-      }}>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: 0 }}>
-          &copy; {new Date().getFullYear()} TravelSync Inc. All rights reserved.
-        </p>
       </div>
     </footer>
   );

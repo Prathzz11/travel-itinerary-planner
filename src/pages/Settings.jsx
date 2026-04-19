@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Settings as SettingsIcon, Shield, Globe, Camera, Check } from 'lucide-react';
+import { Settings as SettingsIcon, Shield, Globe, Camera } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNotification } from '../contexts/NotificationContext';
 import { compressImageToDataUrl } from '../utils/imageCompression';
@@ -8,22 +7,16 @@ import { compressImageToDataUrl } from '../utils/imageCompression';
 const Settings = () => {
   const { user, updateUser } = useAuth();
   const { addNotification } = useNotification();
-  
   const [activeTab, setActiveTab] = useState('account');
   const fileInputRef = useRef(null);
 
-  // Profile State
   const [name, setName] = useState(user?.name || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [avatar, setAvatar] = useState(user?.avatar || '');
-  
-  // Preferences State
   const [currency, setCurrency] = useState(user?.preferences?.currency || 'USD');
   const [language, setLanguage] = useState(user?.preferences?.language || 'en');
   const [dateFormat, setDateFormat] = useState(user?.preferences?.dateFormat || 'MM/DD/YYYY');
   const [timezone, setTimezone] = useState(user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
-
-  // Password State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,218 +33,155 @@ const Settings = () => {
     }
   }, [user]);
 
-  const handleSaveProfile = (e) => {
-    e.preventDefault();
-    updateUser({ name, bio, avatar });
-    addNotification('Profile updated successfully!', 'success');
-  };
-
-  const handleSavePreferences = (e) => {
-    e.preventDefault();
-    updateUser({ preferences: { ...user?.preferences, currency, language, dateFormat, timezone } });
-    addNotification('Preferences saved successfully!', 'success');
-  };
-
-  const handlePasswordChange = (e) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      addNotification("Passwords do not match!", 'error');
-      return;
-    }
-    // Simulate API Call
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    addNotification('Password changed successfully!', 'success');
-  };
+  const handleSaveProfile = (e) => { e.preventDefault(); updateUser({ name, bio, avatar }); addNotification('Profile updated successfully!', 'success'); };
+  const handleSavePreferences = (e) => { e.preventDefault(); updateUser({ preferences: { ...user?.preferences, currency, language, dateFormat, timezone } }); addNotification('Preferences saved successfully!', 'success'); };
+  const handlePasswordChange = (e) => { e.preventDefault(); if (newPassword !== confirmPassword) { addNotification("Passwords do not match!", 'error'); return; } setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); addNotification('Password changed successfully!', 'success'); };
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
       addNotification('Compressing image...', 'info');
       const base64Url = await compressImageToDataUrl(file);
-      if (base64Url) {
-        setAvatar(base64Url);
-        addNotification('Image ready. Click Save Profile to apply.', 'success');
-      } else {
-        addNotification('Failed to process image.', 'error');
-      }
+      if (base64Url) { setAvatar(base64Url); addNotification('Image ready. Click Save Profile to apply.', 'success'); }
+      else { addNotification('Failed to process image.', 'error'); }
     }
   };
 
-  return (
-    <div className="page-container" style={{ padding: 'var(--space-8)' }}>
-      <h1 style={{ fontSize: '2.5rem', margin: '0 0 var(--space-6) 0' }}>Settings</h1>
+  const tabs = [
+    { id: 'account', label: 'Account Profile', icon: SettingsIcon },
+    { id: 'preferences', label: 'Preferences', icon: Globe },
+    { id: 'security', label: 'Security', icon: Shield },
+  ];
 
-      <div className="settings-grid">
-        
-        {/* Settings Nav */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-          <button 
-            onClick={() => setActiveTab('account')} 
-            style={{ padding: 'var(--space-3)', background: activeTab === 'account' ? 'var(--color-primary)' : 'transparent', color: 'white', borderRadius: 'var(--radius-md)', border: 'none', textAlign: 'left', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', transition: '0.2s' }}
-          >
-            <SettingsIcon size={18} /> Account Profile
-          </button>
-          <button 
-            onClick={() => setActiveTab('preferences')} 
-            style={{ padding: 'var(--space-3)', background: activeTab === 'preferences' ? 'var(--color-primary)' : 'transparent', color: 'white', borderRadius: 'var(--radius-md)', border: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', transition: '0.2s' }}
-          >
-            <Globe size={18} /> Preferences
-          </button>
-          <button 
-            onClick={() => setActiveTab('security')} 
-            style={{ padding: 'var(--space-3)', background: activeTab === 'security' ? 'var(--color-primary)' : 'transparent', color: 'white', borderRadius: 'var(--radius-md)', border: 'none', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', transition: '0.2s' }}
-          >
-            <Shield size={18} /> Security
-          </button>
+  return (
+    <div className="page-container animate-fade-in">
+      <h1 className="display-6 fw-bold mb-4">Settings</h1>
+
+      <div className="row g-4">
+        {/* Sidebar Nav */}
+        <div className="col-md-3">
+          <div className="nav flex-column nav-pills">
+            {tabs.map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button key={tab.id} className={`nav-link text-start d-flex align-items-center gap-2 ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+                  <Icon size={18} /> {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Settings Content */}
-        <div style={{ position: 'relative' }}>
-          <AnimatePresence mode="wait">
-            
-            {activeTab === 'account' && (
-              <motion.div key="account" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="glass-panel" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-                <h2 style={{ margin: '0 0 var(--space-4) 0', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>Public Profile</h2>
+        {/* Content */}
+        <div className="col-md-9">
+          {activeTab === 'account' && (
+            <div className="card animate-slide-left">
+              <div className="card-body p-4">
+                <h2 className="fs-4 fw-bold mb-4 pb-2 border-bottom">Public Profile</h2>
                 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-6)', marginBottom: 'var(--space-2)' }}>
-                  <div style={{ position: 'relative', width: '100px', height: '100px' }}>
-                    <img src={avatar || `https://ui-avatars.com/api/?name=${name || 'User'}`} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--color-border)' }} />
-                    <button 
-                      onClick={() => fileInputRef.current?.click()}
-                      style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 10px rgba(0,0,0,0.5)' }}
-                      title="Upload Picture"
-                    >
-                      <Camera size={16} />
+                <div className="d-flex align-items-center gap-4 mb-4">
+                  <div className="position-relative" style={{ width: 100, height: 100 }}>
+                    <img src={avatar || `https://ui-avatars.com/api/?name=${name || 'User'}`} alt="Avatar" className="rounded-circle w-100 h-100" style={{ objectFit: 'cover', border: '3px solid var(--color-border)' }} />
+                    <button className="btn btn-primary btn-sm rounded-circle position-absolute bottom-0 end-0 p-1" onClick={() => fileInputRef.current?.click()} title="Upload Picture" style={{ width: 32, height: 32 }}>
+                      <Camera size={14} />
                     </button>
                     <input type="file" ref={fileInputRef} onChange={handleAvatarChange} style={{ display: 'none' }} accept="image/*" />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0 }}>Profile Picture</h3>
-                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>JPEG, PNG, or GIF (max 2MB).</p>
+                    <h3 className="fs-6 mb-1">Profile Picture</h3>
+                    <p className="text-muted small mb-0">JPEG, PNG, or GIF (max 2MB).</p>
                   </div>
                 </div>
 
-                <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)' }}>Display Name</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} required style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }} />
+                <form onSubmit={handleSaveProfile}>
+                  <div className="mb-3">
+                    <label className="form-label text-muted">Display Name</label>
+                    <input type="text" className="form-control" value={name} onChange={e => setName(e.target.value)} required />
                   </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)' }}>Bio / Description</label>
-                    <textarea value={bio} onChange={e => setBio(e.target.value)} rows="3" placeholder="Tell the community about your travel style..." style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white', resize: 'vertical' }} />
+                  <div className="mb-3">
+                    <label className="form-label text-muted">Bio / Description</label>
+                    <textarea className="form-control" value={bio} onChange={e => setBio(e.target.value)} rows="3" placeholder="Tell the community about your travel style..." />
                   </div>
-                  <div style={{ marginTop: 'var(--space-2)' }}>
-                    <button type="submit" style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '10px 24px', borderRadius: 'var(--radius-full)', fontWeight: 600, cursor: 'pointer' }}>Save Profile</button>
-                  </div>
+                  <button type="submit" className="btn btn-primary">Save Profile</button>
                 </form>
 
-                <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border)' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)' }}>Account Info</label>
-                  <div style={{ color: 'white' }}>Email: {user?.email}</div>
-                  <div style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>Member since: {new Date(user?.createdAt || Date.now()).toLocaleDateString()}</div>
+                <div className="mt-4 pt-4 border-top">
+                  <label className="form-label text-muted">Account Info</label>
+                  <div>Email: {user?.email}</div>
+                  <div className="text-muted small mt-1">Member since: {new Date(user?.createdAt || Date.now()).toLocaleDateString()}</div>
                 </div>
-              </motion.div>
-            )}
+              </div>
+            </div>
+          )}
 
-            {activeTab === 'preferences' && (
-              <motion.div key="preferences" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="glass-panel" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-                <h2 style={{ margin: '0 0 var(--space-4) 0', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>Global Preferences</h2>
-                
-                <form onSubmit={handleSavePreferences} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)' }}>Default Currency</label>
-                    <select value={currency} onChange={e => setCurrency(e.target.value)} style={{ width: '100%', maxWidth: '300px', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}>
-                      <option value="USD">USD ($)</option>
-                      <option value="EUR">EUR (€)</option>
-                      <option value="GBP">GBP (£)</option>
-                      <option value="JPY">JPY (¥)</option>
-                      <option value="CAD">CAD ($)</option>
-                      <option value="AUD">AUD ($)</option>
+          {activeTab === 'preferences' && (
+            <div className="card animate-slide-left">
+              <div className="card-body p-4">
+                <h2 className="fs-4 fw-bold mb-4 pb-2 border-bottom">Global Preferences</h2>
+                <form onSubmit={handleSavePreferences}>
+                  <div className="mb-3">
+                    <label className="form-label text-muted">Default Currency</label>
+                    <select className="form-select" style={{ maxWidth: 300 }} value={currency} onChange={e => setCurrency(e.target.value)}>
+                      <option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option>
+                      <option value="JPY">JPY (¥)</option><option value="CAD">CAD ($)</option><option value="AUD">AUD ($)</option>
                     </select>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)' }}>Language</label>
-                    <select value={language} onChange={e => setLanguage(e.target.value)} style={{ width: '100%', maxWidth: '300px', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}>
-                      <option value="en">English</option>
-                      <option value="es">Español</option>
-                      <option value="fr">Français</option>
-                      <option value="de">Deutsch</option>
-                      <option value="ja">日本語</option>
+                  <div className="mb-3">
+                    <label className="form-label text-muted">Language</label>
+                    <select className="form-select" style={{ maxWidth: 300 }} value={language} onChange={e => setLanguage(e.target.value)}>
+                      <option value="en">English</option><option value="es">Español</option><option value="fr">Français</option>
+                      <option value="de">Deutsch</option><option value="ja">日本語</option>
                     </select>
                   </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)' }}>Date Format</label>
-                    <select value={dateFormat} onChange={e => setDateFormat(e.target.value)} style={{ width: '100%', maxWidth: '300px', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}>
-                      <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
-                      <option value="DD/MM/YYYY">DD/MM/YYYY (EU)</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
+                  <div className="mb-3">
+                    <label className="form-label text-muted">Date Format</label>
+                    <select className="form-select" style={{ maxWidth: 300 }} value={dateFormat} onChange={e => setDateFormat(e.target.value)}>
+                      <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option><option value="DD/MM/YYYY">DD/MM/YYYY (EU)</option><option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
                     </select>
-                    <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', margin: '6px 0 0' }}>Affects how dates are displayed across the app.</p>
+                    <div className="form-text">Affects how dates are displayed across the app.</div>
                   </div>
-
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)' }}>Timezone</label>
-                    <select value={timezone} onChange={e => setTimezone(e.target.value)} style={{ width: '100%', maxWidth: '300px', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}>
-                      <option value="UTC">UTC</option>
-                      <option value="America/New_York">America/New York (EST)</option>
-                      <option value="America/Chicago">America/Chicago (CST)</option>
-                      <option value="America/Denver">America/Denver (MST)</option>
-                      <option value="America/Los_Angeles">America/Los Angeles (PST)</option>
-                      <option value="America/Sao_Paulo">America/São Paulo (BRT)</option>
-                      <option value="Europe/London">Europe/London (GMT)</option>
-                      <option value="Europe/Paris">Europe/Paris (CET)</option>
-                      <option value="Europe/Berlin">Europe/Berlin (CET)</option>
-                      <option value="Asia/Dubai">Asia/Dubai (GST)</option>
-                      <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
-                      <option value="Asia/Bangkok">Asia/Bangkok (ICT)</option>
-                      <option value="Asia/Shanghai">Asia/Shanghai (CST)</option>
-                      <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
-                      <option value="Asia/Seoul">Asia/Seoul (KST)</option>
-                      <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
-                      <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
-                      <option value="Pacific/Auckland">Pacific/Auckland (NZST)</option>
+                  <div className="mb-3">
+                    <label className="form-label text-muted">Timezone</label>
+                    <select className="form-select" style={{ maxWidth: 300 }} value={timezone} onChange={e => setTimezone(e.target.value)}>
+                      <option value="UTC">UTC</option><option value="America/New_York">America/New York (EST)</option>
+                      <option value="Europe/London">Europe/London (GMT)</option><option value="Europe/Paris">Europe/Paris (CET)</option>
+                      <option value="Asia/Kolkata">Asia/Kolkata (IST)</option><option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                      <option value="Asia/Singapore">Asia/Singapore (SGT)</option><option value="Australia/Sydney">Australia/Sydney (AEST)</option>
                     </select>
                   </div>
-                  <div style={{ marginTop: 'var(--space-2)' }}>
-                    <button type="submit" style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '10px 24px', borderRadius: 'var(--radius-full)', fontWeight: 600, cursor: 'pointer' }}>Save Preferences</button>
-                  </div>
+                  <button type="submit" className="btn btn-primary">Save Preferences</button>
                 </form>
-              </motion.div>
-            )}
+              </div>
+            </div>
+          )}
 
-            {activeTab === 'security' && (
-              <motion.div key="security" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="glass-panel" style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-                <h2 style={{ margin: '0 0 var(--space-4) 0', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-2)' }}>Change Password</h2>
-                
-                <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', maxWidth: '400px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)' }}>Current Password</label>
-                    <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }} />
+          {activeTab === 'security' && (
+            <div className="card animate-slide-left">
+              <div className="card-body p-4">
+                <h2 className="fs-4 fw-bold mb-4 pb-2 border-bottom">Change Password</h2>
+                <form onSubmit={handlePasswordChange} style={{ maxWidth: 400 }}>
+                  <div className="mb-3">
+                    <label className="form-label text-muted">Current Password</label>
+                    <input type="password" className="form-control" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required />
                   </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)' }}>New Password</label>
-                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }} />
+                  <div className="mb-3">
+                    <label className="form-label text-muted">New Password</label>
+                    <input type="password" className="form-control" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
                   </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-muted)' }}>Confirm New Password</label>
-                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }} />
+                  <div className="mb-3">
+                    <label className="form-label text-muted">Confirm New Password</label>
+                    <input type="password" className="form-control" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
                   </div>
-                  <div style={{ marginTop: 'var(--space-2)' }}>
-                    <button type="submit" style={{ background: 'var(--color-accent)', color: 'white', border: 'none', padding: '10px 24px', borderRadius: 'var(--radius-full)', fontWeight: 600, cursor: 'pointer' }}>Update Password</button>
-                  </div>
+                  <button type="submit" className="btn btn-primary">Update Password</button>
                 </form>
 
-                <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-danger)' }}>
-                  <h3 style={{ color: 'var(--color-danger)', margin: '0 0 12px 0' }}>Danger Zone</h3>
-                  <button style={{ background: 'transparent', border: '1px solid var(--color-danger)', color: 'var(--color-danger)', padding: '10px 24px', borderRadius: 'var(--radius-full)', fontWeight: 600, cursor: 'pointer' }}>Delete Account</button>
+                <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--color-danger)' }}>
+                  <h3 className="text-danger fs-5 mb-3">Danger Zone</h3>
+                  <button className="btn btn-outline-danger">Delete Account</button>
                 </div>
-              </motion.div>
-            )}
-            
-          </AnimatePresence>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,14 +1,11 @@
-import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useState, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
-import { SocketContext } from './SocketContext';
 import { useNotification } from './NotificationContext';
 
 export const ExpenseContext = createContext();
 
 export const ExpenseProvider = ({ children }) => {
   const { user } = useAuth();
-  const socketContext = useContext(SocketContext);
-  const { socket, emitAction } = socketContext || {};
   const { addNotification } = useNotification();
   
   const [expenses, setExpenses] = useState({
@@ -19,7 +16,7 @@ export const ExpenseProvider = ({ children }) => {
         amount: 120,
         category: 'Food',
         date: '2026-06-15T19:30',
-        paidBy: 'm1', // Test User
+        paidBy: 'm1',
         splitType: 'equal',
         splits: [
           { memberId: 'm1', amountOwed: 40 },
@@ -36,12 +33,12 @@ export const ExpenseProvider = ({ children }) => {
         amount: 300,
         category: 'Transport',
         date: '2026-06-16T10:00',
-        paidBy: 'm2', // Alex Travels
+        paidBy: 'm2',
         splitType: 'custom',
         splits: [
           { memberId: 'm1', amountOwed: 150 },
           { memberId: 'm2', amountOwed: 150 },
-          { memberId: 'm3', amountOwed: 0 } // Sarah didn't travel
+          { memberId: 'm3', amountOwed: 0 }
         ],
         receiptImage: '',
         notes: 'Tokyo to Kyoto',
@@ -51,27 +48,11 @@ export const ExpenseProvider = ({ children }) => {
   });
 
   const [settlements, setSettlements] = useState({
-    '1': [] // Array of recorded settlements
+    '1': []
   });
 
   const getExpenses = useCallback((tripId) => expenses[tripId] || [], [expenses]);
   const getSettlements = useCallback((tripId) => settlements[tripId] || [], [settlements]);
-
-  useEffect(() => {
-    if (socket) {
-      const handleAction = ({ action, payload }) => {
-        if (action === 'ADD_EXPENSE') {
-          setExpenses(prev => ({ ...prev, [payload.tripId]: [...(prev[payload.tripId]||[]), payload.data] }));
-        } else if (action === 'DELETE_EXPENSE') {
-          setExpenses(prev => ({ ...prev, [payload.tripId]: (prev[payload.tripId]||[]).filter(e => e.id !== payload.id) }));
-        } else if (action === 'ADD_SETTLEMENT') {
-          setSettlements(prev => ({ ...prev, [payload.tripId]: [...(prev[payload.tripId]||[]), payload.data] }));
-        }
-      };
-      socket.on('receive_action', handleAction);
-      return () => socket.off('receive_action', handleAction);
-    }
-  }, [socket]);
 
   const addExpense = useCallback((tripId, expenseData) => {
     setExpenses(prev => {
@@ -81,13 +62,10 @@ export const ExpenseProvider = ({ children }) => {
         id: Math.random().toString(36).substr(2, 9),
         creator: user?.name || 'Unknown'
       };
-      
-      if (emitAction) emitAction(tripId, 'ADD_EXPENSE', { tripId, data: newExpense });
-      
       return { ...prev, [tripId]: [...tripExpenses, newExpense] };
     });
     addNotification('Expense added', 'success');
-  }, [user, emitAction, addNotification]);
+  }, [user, addNotification]);
 
   const updateExpense = useCallback((tripId, expenseId, updatedData) => {
     setExpenses(prev => {
@@ -101,7 +79,6 @@ export const ExpenseProvider = ({ children }) => {
   }, [addNotification]);
 
   const deleteExpense = useCallback((tripId, expenseId) => {
-    if (emitAction) emitAction(tripId, 'DELETE_EXPENSE', { tripId, id: expenseId });
     setExpenses(prev => {
       const tripExpenses = prev[tripId] || [];
       return {
@@ -110,7 +87,7 @@ export const ExpenseProvider = ({ children }) => {
       };
     });
     addNotification('Expense removed', 'info');
-  }, [emitAction, addNotification]);
+  }, [addNotification]);
 
   const addSettlement = useCallback((tripId, settlementData) => {
     setSettlements(prev => {
@@ -120,12 +97,9 @@ export const ExpenseProvider = ({ children }) => {
         id: Math.random().toString(36).substr(2, 9),
         creator: user?.name || 'Unknown'
       };
-      
-      if (emitAction) emitAction(tripId, 'ADD_SETTLEMENT', { tripId, data: newSettlement });
-      
       return { ...prev, [tripId]: [...tripSetts, newSettlement] };
     });
-  }, [user, emitAction]);
+  }, [user]);
 
   const deleteSettlement = useCallback((tripId, settlementId) => {
     setSettlements(prev => {

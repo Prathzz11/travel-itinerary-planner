@@ -1,11 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 
-// Providers
 import { AuthProvider } from './contexts/AuthContext';
 import { TripProvider } from './contexts/TripContext';
 import { ItineraryProvider } from './contexts/ItineraryContext';
-import { SocketProvider } from './contexts/SocketContext';
 import { BookingProvider } from './contexts/BookingContext';
 import { ExpenseProvider } from './contexts/ExpenseContext';
 import { ExploreProvider } from './contexts/ExploreContext';
@@ -65,7 +63,6 @@ function App() {
       <AuthProvider>
       <ExploreProvider>
         <TripProvider>
-        <SocketProvider>
           <ItineraryProvider>
             <BookingProvider>
               <ExpenseProvider>
@@ -110,7 +107,6 @@ function App() {
             </ExpenseProvider>
           </BookingProvider>
         </ItineraryProvider>
-        </SocketProvider>
         </TripProvider>
       </ExploreProvider>
     </AuthProvider>

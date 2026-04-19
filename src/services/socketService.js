@@ -1,3 +1,4 @@
-import { io } from 'socket.io-client';
-import { SOCKET_URL } from '../utils/constants';
-export const socket = io(SOCKET_URL, { autoConnect: false });
+// Socket service — no-op (socket.io removed)
+export const connectSocket = () => null;
+export const disconnectSocket = () => {};
+export const getSocket = () => null;

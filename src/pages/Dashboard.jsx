@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Plus, Filter, Calendar, MapPin, TrendingUp, Compass, ChevronDown } from 'lucide-react';
+import { Search, Plus, Calendar, MapPin, Compass, ChevronDown } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { useDebounce } from '../hooks/useDebounce';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -12,13 +11,12 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { trips, deleteTrip } = useTrip();
   const [search, setSearch] = useLocalStorage('dashboard_search', '');
-  const [timeFilter, setTimeFilter] = useLocalStorage('dashboard_timeFilter', 'all'); // 'all', 'upcoming', 'past'
-  const [sortBy, setSortBy] = useLocalStorage('dashboard_sortBy', 'newest'); // 'newest', 'oldest', 'a-z', 'z-a'
+  const [timeFilter, setTimeFilter] = useLocalStorage('dashboard_timeFilter', 'all');
+  const [sortBy, setSortBy] = useLocalStorage('dashboard_sortBy', 'newest');
   const [isLoading, setIsLoading] = useState(true);
   
   const debouncedSearch = useDebounce(search, 500);
 
-  // Simulate loading state for skeletons
   React.useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);
@@ -28,14 +26,10 @@ const Dashboard = () => {
     if (!trips) return { total: 0, upcoming: 0, countries: 0 };
     const today = new Date();
     today.setHours(0,0,0,0);
-    
-    const upcomingCount = trips.filter(t => new Date(t.startDate) >= today).length;
-    const uniqueDestinations = new Set(trips.map(t => t.destination)).size;
-    
     return {
       total: trips.length,
-      upcoming: upcomingCount,
-      countries: uniqueDestinations
+      upcoming: trips.filter(t => new Date(t.startDate) >= today).length,
+      countries: new Set(trips.map(t => t.destination)).size
     };
   }, [trips]);
 
@@ -47,12 +41,10 @@ const Dashboard = () => {
     let result = trips.filter(trip => {
       const matchesSearch = trip.title.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
                             trip.destination.toLowerCase().includes(debouncedSearch.toLowerCase());
-      
       let matchesTime = true;
       const tripStart = new Date(trip.startDate);
       if (timeFilter === 'upcoming') matchesTime = tripStart >= today;
       if (timeFilter === 'past') matchesTime = tripStart < today;
-      
       return matchesSearch && matchesTime;
     });
 
@@ -63,140 +55,100 @@ const Dashboard = () => {
       if (sortBy === 'z-a') return b.title.localeCompare(a.title);
       return 0;
     });
-
     return result;
   }, [trips, debouncedSearch, timeFilter, sortBy]);
 
   return (
-    <div className="page-container" style={{ padding: 'var(--space-8) var(--space-6)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-6)', flexWrap: 'wrap', gap: '16px' }}>
+    <div className="page-container animate-fade-in">
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
         <div>
-          <h1 style={{ fontSize: '2.5rem', margin: '0 0 var(--space-2) 0', background: 'linear-gradient(to right, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Command Center</h1>
-          <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>Manage and organize your personal travel universe.</p>
+          <h1 className="display-6 fw-bold mb-1">Command Center</h1>
+          <p className="text-muted mb-0">Manage and organize your personal travel universe.</p>
         </div>
-        
         {trips.length > 0 && (
-          <Link to="/create-trip">
-            <motion.button
-              whileHover={{ scale: 1.05, boxShadow: '0 0 20px var(--color-primary-glow)' }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
-                color: 'white',
-                border: 'none',
-                padding: 'var(--space-3) var(--space-6)',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '1rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                cursor: 'pointer'
-              }}
-            >
-              <Plus size={18} />
-              New Trip
-            </motion.button>
+          <Link to="/create-trip" className="btn btn-primary d-flex align-items-center gap-2">
+            <Plus size={18} /> New Trip
           </Link>
         )}
       </div>
 
-      {/* Top Stats Row */}
+      {/* Stats Row */}
       {trips.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '16px', marginBottom: 'var(--space-8)' }}>
-          <div className="glass-panel" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
-              <Compass size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Total Trips</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{stats.total}</div>
-            </div>
-          </div>
-          <div className="glass-panel" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-success)' }}>
-              <Calendar size={24} />
-            </div>
-            <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Upcoming Trips</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{stats.upcoming}</div>
+        <div className="row g-3 mb-4">
+          <div className="col-md-4">
+            <div className="card">
+              <div className="card-body d-flex align-items-center gap-3 py-3">
+                <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: 48, height: 48, background: 'rgba(56,189,248,0.1)', color: 'var(--color-primary)' }}>
+                  <Compass size={24} />
+                </div>
+                <div>
+                  <div className="text-muted small">Total Trips</div>
+                  <div className="fs-4 fw-bold">{stats.total}</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="glass-panel" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-warning)' }}>
-              <MapPin size={24} />
+          <div className="col-md-4">
+            <div className="card">
+              <div className="card-body d-flex align-items-center gap-3 py-3">
+                <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: 48, height: 48, background: 'rgba(16,185,129,0.1)', color: 'var(--color-success)' }}>
+                  <Calendar size={24} />
+                </div>
+                <div>
+                  <div className="text-muted small">Upcoming</div>
+                  <div className="fs-4 fw-bold">{stats.upcoming}</div>
+                </div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Destinations</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{stats.countries}</div>
+          </div>
+          <div className="col-md-4">
+            <div className="card">
+              <div className="card-body d-flex align-items-center gap-3 py-3">
+                <div className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: 48, height: 48, background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
+                  <MapPin size={24} />
+                </div>
+                <div>
+                  <div className="text-muted small">Destinations</div>
+                  <div className="fs-4 fw-bold">{stats.countries}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Controls Bar */}
+      {/* Controls */}
       {trips.length > 0 && (
-        <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-          
-          <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: 'var(--radius-full)', padding: '4px' }}>
-            <button onClick={() => setTimeFilter('all')} style={{ padding: '6px 16px', borderRadius: 'var(--radius-full)', background: timeFilter === 'all' ? 'var(--color-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500, transition: '0.2s' }}>All</button>
-            <button onClick={() => setTimeFilter('upcoming')} style={{ padding: '6px 16px', borderRadius: 'var(--radius-full)', background: timeFilter === 'upcoming' ? 'var(--color-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500, transition: '0.2s' }}>Upcoming</button>
-            <button onClick={() => setTimeFilter('past')} style={{ padding: '6px 16px', borderRadius: 'var(--radius-full)', background: timeFilter === 'past' ? 'var(--color-primary)' : 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500, transition: '0.2s' }}>Past</button>
+        <div className="d-flex flex-wrap gap-3 mb-4 align-items-center justify-content-between">
+          <div className="btn-group" role="group">
+            <button className={`btn btn-sm ${timeFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setTimeFilter('all')}>All</button>
+            <button className={`btn btn-sm ${timeFilter === 'upcoming' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setTimeFilter('upcoming')}>Upcoming</button>
+            <button className={`btn btn-sm ${timeFilter === 'past' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setTimeFilter('past')}>Past</button>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', flex: 1, justifyContent: 'flex-end' }}>
-            <div style={{ position: 'relative', width: '250px', maxWidth: '100%' }}>
-              <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)' }} />
-              <input
-                type="text"
-                placeholder="Search trips..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'rgba(30, 41, 59, 0.7)',
-                  border: '1px solid var(--color-border)',
-                  color: 'var(--color-text)',
-                  padding: '8px 12px 8px 36px',
-                  borderRadius: 'var(--radius-full)',
-                  outline: 'none',
-                  fontSize: '0.9rem'
-                }}
-              />
+          <div className="d-flex gap-2">
+            <div className="input-group input-group-sm" style={{ width: '220px' }}>
+              <span className="input-group-text bg-transparent"><Search size={14} className="text-muted" /></span>
+              <input type="text" className="form-control" placeholder="Search trips..." value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-
-            <div style={{ position: 'relative' }}>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                style={{
-                  appearance: 'none',
-                  background: 'rgba(30, 41, 59, 0.7)',
-                  border: '1px solid var(--color-border)',
-                  color: 'var(--color-text)',
-                  padding: '8px 32px 8px 16px',
-                  borderRadius: 'var(--radius-full)',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  fontSize: '0.9rem'
-                }}
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="a-z">A-Z</option>
-                <option value="z-a">Z-A</option>
-              </select>
-              <ChevronDown size={14} color="var(--color-text-muted)" style={{ position: 'absolute', top: '50%', right: '12px', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            </div>
+            <select className="form-select form-select-sm" style={{ width: 'auto' }} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="a-z">A-Z</option>
+              <option value="z-a">Z-A</option>
+            </select>
           </div>
         </div>
       )}
 
-      {/* Trips Grid / Skeletons */}
+      {/* Content */}
       {isLoading ? (
-        <div className="responsive-grid" style={{ gap: 'var(--space-6)', paddingBottom: 'var(--space-8)' }}>
+        <div className="responsive-grid g-4">
           {[1, 2, 3].map(n => (
-            <div key={n} className="glass-panel" style={{ height: '300px', animation: 'pulse 1.5s infinite', background: 'rgba(255,255,255,0.02)' }} />
+            <div key={n} className="card placeholder-glow" style={{ height: '300px' }}>
+              <div className="card-body"><span className="placeholder col-6"></span></div>
+            </div>
           ))}
         </div>
       ) : trips.length === 0 ? (
@@ -209,21 +161,13 @@ const Dashboard = () => {
           onAction={() => navigate('/create-trip')}
         />
       ) : filteredTrips.length > 0 ? (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ staggerChildren: 0.1 }}
-          className="responsive-grid"
-          style={{ gap: 'var(--space-6)', paddingBottom: 'var(--space-8)' }}
-        >
-          <AnimatePresence>
-            {filteredTrips.map((trip) => (
-              <motion.div key={trip.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}>
-                <TripCard trip={trip} onDelete={deleteTrip} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        <div className="responsive-grid stagger-children" style={{ gap: 'var(--space-6)', paddingBottom: 'var(--space-8)' }}>
+          {filteredTrips.map((trip) => (
+            <div key={trip.id}>
+              <TripCard trip={trip} onDelete={deleteTrip} />
+            </div>
+          ))}
+        </div>
       ) : (
         <EmptyState 
           icon={Search}
@@ -233,14 +177,6 @@ const Dashboard = () => {
           onAction={() => { setSearch(''); setTimeFilter('all'); }}
         />
       )}
-
-      <style>{`
-        @keyframes pulse {
-          0% { opacity: 1; }
-          50% { opacity: 0.4; }
-          100% { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 };

@@ -1,14 +1,11 @@
-import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useState, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
-import { SocketContext } from './SocketContext';
 import { useNotification } from './NotificationContext';
 
 export const ItineraryContext = createContext();
 
 export const ItineraryProvider = ({ children }) => {
   const { user } = useAuth();
-  const socketContext = useContext(SocketContext);
-  const { socket, emitAction } = socketContext || {};
   const { addNotification } = useNotification();
   
   const [itineraries, setItineraries] = useState({
@@ -27,40 +24,6 @@ export const ItineraryProvider = ({ children }) => {
 
   const getItinerary = useCallback((tripId) => itineraries[tripId] || [], [itineraries]);
 
-  useEffect(() => {
-    if (socket) {
-      const handleAction = ({ action, payload }) => {
-        if (action === 'ADD_ACTIVITY') {
-          setItineraries(prev => {
-            const tripItin = prev[payload.tripId] || [];
-            return {
-              ...prev,
-              [payload.tripId]: tripItin.map(day => day.id === payload.dayId ? { ...day, activities: [...day.activities, payload.data] } : day)
-            };
-          });
-        } else if (action === 'DELETE_ACTIVITY') {
-          setItineraries(prev => {
-            const tripItin = prev[payload.tripId] || [];
-            return {
-              ...prev,
-              [payload.tripId]: tripItin.map(day => day.id === payload.dayId ? { ...day, activities: day.activities.filter(a => a.id !== payload.id) } : day)
-            };
-          });
-        } else if (action === 'UPDATE_ACTIVITY') {
-          setItineraries(prev => {
-            const tripItin = prev[payload.tripId] || [];
-            return {
-              ...prev,
-              [payload.tripId]: tripItin.map(day => day.id === payload.dayId ? { ...day, activities: day.activities.map(a => a.id === payload.data.id ? payload.data : a) } : day)
-            };
-          });
-        }
-      };
-      socket.on('receive_action', handleAction);
-      return () => socket.off('receive_action', handleAction);
-    }
-  }, [socket]);
-
   const addActivity = useCallback((tripId, dayId, activityData) => {
     setItineraries(prev => {
       const tripItin = prev[tripId] || [];
@@ -72,7 +35,6 @@ export const ItineraryProvider = ({ children }) => {
             creator: user?.name || 'Unknown',
             createdAt: new Date().toISOString()
           };
-          if (emitAction) emitAction(tripId, 'ADD_ACTIVITY', { tripId, dayId, data: newActivity });
           return {
             ...day,
             activities: [...day.activities, newActivity]
@@ -83,19 +45,16 @@ export const ItineraryProvider = ({ children }) => {
       return { ...prev, [tripId]: updatedItin };
     });
     addNotification('Activity added successfully', 'success');
-  }, [user, emitAction, addNotification]);
+  }, [user, addNotification]);
 
   const updateActivity = useCallback((tripId, dayId, activityId, updatedData) => {
     setItineraries(prev => {
       const tripItin = prev[tripId] || [];
       const updatedItin = tripItin.map(day => {
         if (day.id === dayId) {
-          const updatedActivities = day.activities.map(act => act.id === activityId ? { ...act, ...updatedData } : act);
-          const updatedActivity = updatedActivities.find(a => a.id === activityId);
-          if (emitAction) emitAction(tripId, 'UPDATE_ACTIVITY', { tripId, dayId, data: updatedActivity });
           return {
             ...day,
-            activities: updatedActivities
+            activities: day.activities.map(act => act.id === activityId ? { ...act, ...updatedData } : act)
           };
         }
         return day;
@@ -103,10 +62,9 @@ export const ItineraryProvider = ({ children }) => {
       return { ...prev, [tripId]: updatedItin };
     });
     addNotification('Activity updated', 'success');
-  }, [emitAction, addNotification]);
+  }, [addNotification]);
 
   const deleteActivity = useCallback((tripId, dayId, activityId) => {
-    if (emitAction) emitAction(tripId, 'DELETE_ACTIVITY', { tripId, dayId, id: activityId });
     setItineraries(prev => {
       const tripItin = prev[tripId] || [];
       const updatedItin = tripItin.map(day => {
@@ -121,11 +79,9 @@ export const ItineraryProvider = ({ children }) => {
       return { ...prev, [tripId]: updatedItin };
     });
     addNotification('Activity removed', 'info');
-  }, [emitAction, addNotification]);
+  }, [addNotification]);
 
   const reorderActivities = useCallback((tripId, dayId, reorderedActivities) => {
-    // We only emit the reorder action if we need to sync over sockets
-    // For now, let's assume it's just local client update
     setItineraries(prev => {
       const tripItin = prev[tripId] || [];
       const updatedItin = tripItin.map(day => {

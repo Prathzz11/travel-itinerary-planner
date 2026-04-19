@@ -1,36 +1,20 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
-const LoadingSpinner = ({ size = 24, color = 'var(--color-primary)', strokeWidth = 3 }) => {
+const LoadingSpinner = ({ size = 24, color = 'var(--color-primary)' }) => {
   return (
-    <motion.svg
-      width={size}
-      height={size}
-      viewBox="0 0 50 50"
-      animate={{ rotate: 360 }}
-      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-      style={{ display: 'inline-block' }}
+    <div
+      className="spinner-border"
+      role="status"
+      style={{
+        width: size,
+        height: size,
+        borderWidth: '2px',
+        color: color,
+        display: 'inline-block'
+      }}
     >
-      <motion.circle
-        cx="25"
-        cy="25"
-        r="20"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        fill="transparent"
-        initial={{ strokeDasharray: '1, 150', strokeDashoffset: 0 }}
-        animate={{
-          strokeDasharray: ['90, 150', '90, 150'],
-          strokeDashoffset: [0, -120],
-        }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-      />
-    </motion.svg>
+      <span className="visually-hidden">Loading...</span>
+    </div>
   );
 };
 

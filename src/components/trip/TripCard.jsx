@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, Clock, DollarSign, Edit2, Trash2, Users } from 'lucide-react';
 import { formatTripDates, getTripDuration, formatCurrency } from '../../utils/formatters';
@@ -12,133 +11,76 @@ const TripCard = ({ trip, onDelete }) => {
 
   const status = useMemo(() => getTripStatus(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
   const duration = useMemo(() => getTripDuration(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
-
   const totalSpent = trip.spent || 0;
   const budgetPercent = trip.budget > 0 ? Math.min((totalSpent / trip.budget) * 100, 100) : 0;
   const budgetSt = getBudgetStatus(budgetPercent);
-
   const memberCount = trip.members?.length || 1;
   const budgetPerPerson = trip.budget > 0 ? trip.budget / memberCount : 0;
 
-  const handleDelete = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setConfirmOpen(true);
-  };
+  const handleDelete = (e) => { e.preventDefault(); e.stopPropagation(); setConfirmOpen(true); };
 
   return (
     <>
-      <motion.div
-        whileHover={{ y: -5, boxShadow: '0 10px 40px -10px rgba(56,189,248,0.3)' }}
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-panel"
-        style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
-      >
-        {/* Card Image */}
-        <div style={{ height: '160px', width: '100%', position: 'relative', overflow: 'hidden' }}>
-          <img
-            src={trip.image}
-            alt={trip.destination}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
-          />
-          {/* Gradient overlay */}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)' }} />
+      <div className="card hover-lift position-relative" style={{ overflow: 'hidden' }}>
+        {/* Image */}
+        <div className="position-relative" style={{ height: 160, overflow: 'hidden' }}>
+          <img src={trip.image} alt={trip.destination} className="w-100 h-100" style={{ objectFit: 'cover' }} />
+          <div className="position-absolute top-0 start-0 w-100 h-100" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)' }} />
 
-          {/* Duration badge */}
           {duration && (
-            <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '3px 8px', borderRadius: '20px', fontSize: '0.75rem', color: 'white', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span className="badge position-absolute bottom-0 start-0 m-2 d-flex align-items-center gap-1" style={{ background: 'rgba(0,0,0,0.7)', fontSize: '0.75rem' }}>
               <Clock size={11} /> {duration}
-            </div>
+            </span>
           )}
-
-          {/* Status Badge */}
-          <div style={{
-            position: 'absolute', top: '10px', right: '10px',
-            background: status.bg, backdropFilter: 'blur(4px)',
-            border: `1px solid ${status.color}40`,
-            padding: '4px 10px', borderRadius: '20px',
-            fontSize: '0.75rem', fontWeight: 700,
-            color: status.color
-          }}>
+          <span className="badge position-absolute top-0 end-0 m-2" style={{ background: status.bg, color: status.color, border: `1px solid ${status.color}40`, fontSize: '0.75rem' }}>
             {status.label}
-          </div>
+          </span>
 
-          {/* Quick Actions Overlay */}
-          <div className="trip-card-actions" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, transition: 'opacity 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-            <button onClick={(e) => { e.preventDefault(); navigate(`/trip/${trip.id}`); }} title="Open Trip" aria-label="Open trip" style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--color-primary)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Edit2 size={18} />
-            </button>
-            <button onClick={handleDelete} title="Delete Trip" aria-label="Delete trip" style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--color-danger)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Trash2 size={18} />
-            </button>
+          {/* Hover Actions */}
+          <div className="trip-card-actions position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center gap-2" style={{ background: 'rgba(0,0,0,0.4)', opacity: 0, transition: 'opacity 0.2s' }}>
+            <button className="btn btn-primary btn-sm rounded-circle p-2" onClick={(e) => { e.preventDefault(); navigate(`/trip/${trip.id}`); }} aria-label="Open trip"><Edit2 size={16} /></button>
+            <button className="btn btn-danger btn-sm rounded-circle p-2" onClick={handleDelete} aria-label="Delete trip"><Trash2 size={16} /></button>
           </div>
         </div>
 
-        <div style={{ padding: 'var(--space-4)', flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+        <div className="card-body d-flex flex-column gap-2">
           <div>
-            <h3 style={{ margin: '0 0 var(--space-1) 0', fontSize: '1.15rem', lineHeight: 1.3 }}>{trip.title}</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-muted)', fontSize: '0.88rem' }}>
-              <MapPin size={13} /> {trip.destination}
-            </div>
+            <h3 className="fs-6 fw-semibold mb-1">{trip.title}</h3>
+            <div className="text-muted small d-flex align-items-center gap-1"><MapPin size={13} /> {trip.destination}</div>
           </div>
-
-          {/* Date Row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
-            <Calendar size={13} />
-            {formatTripDates(trip.startDate, trip.endDate)}
-          </div>
-
-          {/* Members Row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '0' }}>
+          <div className="text-muted small d-flex align-items-center gap-1"><Calendar size={13} /> {formatTripDates(trip.startDate, trip.endDate)}</div>
+          
+          {/* Members */}
+          <div className="d-flex justify-content-between align-items-center">
+            <div className="d-flex align-items-center">
               {trip.members?.slice(0, 3).map((m, i) => (
-                <img key={m.id} src={m.avatar} alt={m.name} title={m.name} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid var(--color-bg)', marginLeft: i > 0 ? '-8px' : '0', zIndex: 10 - i, objectFit: 'cover' }} />
+                <img key={m.id} src={m.avatar} alt={m.name} title={m.name} className="rounded-circle" style={{ width: 24, height: 24, objectFit: 'cover', border: '2px solid var(--bs-body-bg)', marginLeft: i > 0 ? -8 : 0, zIndex: 10 - i }} />
               ))}
-              {trip.members?.length > 3 && (
-                <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid var(--color-bg)', marginLeft: '-8px', zIndex: 7, background: 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold' }}>
-                  +{trip.members.length - 3}
-                </div>
-              )}
+              {trip.members?.length > 3 && <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 24, height: 24, marginLeft: -8, zIndex: 7, background: 'var(--color-surface)', fontSize: '0.65rem', fontWeight: 'bold', border: '2px solid var(--bs-body-bg)' }}>+{trip.members.length - 3}</div>}
             </div>
-            {budgetPerPerson > 0 && (
-              <div title={`Budget per person: ${formatCurrency(budgetPerPerson)}`} style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Users size={11} /> {formatCurrency(budgetPerPerson)}/ea
-              </div>
-            )}
+            {budgetPerPerson > 0 && <div className="text-muted d-flex align-items-center gap-1" style={{ fontSize: '0.78rem' }}><Users size={11} /> {formatCurrency(budgetPerPerson)}/ea</div>}
           </div>
 
           {/* Budget Bar */}
           {trip.budget > 0 && (
-            <div style={{ paddingTop: '8px', borderTop: '1px solid var(--color-border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '5px' }}>
-                <span style={{ color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '2px' }}><DollarSign size={11}/> Budget</span>
-                <span style={{ color: budgetSt.color, fontWeight: 600 }}>{budgetSt.label}</span>
+            <div className="pt-2 border-top">
+              <div className="d-flex justify-content-between small mb-1">
+                <span className="text-muted d-flex align-items-center gap-1"><DollarSign size={11} /> Budget</span>
+                <span className="fw-semibold" style={{ color: budgetSt.color }}>{budgetSt.label}</span>
               </div>
-              <div style={{ width: '100%', height: '5px', background: 'rgba(0,0,0,0.3)', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{ width: `${Math.min(budgetPercent, 100)}%`, height: '100%', background: budgetSt.color, transition: 'width 0.5s ease, background 0.3s ease', borderRadius: '3px' }} />
+              <div className="progress" style={{ height: 5 }}>
+                <div className="progress-bar" role="progressbar" style={{ width: `${Math.min(budgetPercent, 100)}%`, background: budgetSt.color }} />
               </div>
             </div>
           )}
         </div>
 
-        <style>{`
-          .glass-panel:hover .trip-card-actions {
-            opacity: 1 !important;
-          }
-        `}</style>
+        <Link to={`/trip/${trip.id}`} className="stretched-link" />
 
-        <Link to={`/trip/${trip.id}`} style={{ position: 'absolute', inset: 0, zIndex: 0 }} />
-      </motion.div>
+        <style>{`.card:hover .trip-card-actions { opacity: 1 !important; }`}</style>
+      </div>
 
-      <ConfirmDialog
-        isOpen={confirmOpen}
-        title={`Delete "${trip.title}"?`}
-        message="This action is permanent and cannot be undone. All itinerary data, expenses, and members will be removed."
-        confirmLabel="Delete Trip"
-        onConfirm={() => { setConfirmOpen(false); if (onDelete) onDelete(trip.id); }}
-        onCancel={() => setConfirmOpen(false)}
-      />
+      <ConfirmDialog isOpen={confirmOpen} title={`Delete "${trip.title}"?`} message="This action is permanent and cannot be undone." confirmLabel="Delete Trip" onConfirm={() => { setConfirmOpen(false); if (onDelete) onDelete(trip.id); }} onCancel={() => setConfirmOpen(false)} />
     </>
   );
 };
