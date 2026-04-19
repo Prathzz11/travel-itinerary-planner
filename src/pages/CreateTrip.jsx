@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, DollarSign, Users, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
@@ -14,19 +14,21 @@ const CreateTrip = () => {
   const [step, setStep] = useState(1);
   const pendingNavigateId = useRef(null);
 
+  const validate = useCallback((vals) => {
+    const errs = {};
+    if (!vals.title?.trim()) errs.title = 'Title is required';
+    if (!vals.destination?.trim()) errs.destination = 'Destination is required';
+    if (!vals.startDate) errs.startDate = 'Start date is required';
+    if (!vals.endDate) errs.endDate = 'End date is required';
+    if (vals.startDate && vals.endDate && new Date(vals.startDate) > new Date(vals.endDate)) errs.endDate = 'End date must be after start date';
+    if (!vals.budget || Number(vals.budget) <= 0) errs.budget = 'Budget must be > 0';
+    return errs;
+  }, []);
+
   const { values, errors, touched, handleChange, handleBlur, clearDraft } = useForm({
     initialValues: { title: '', destination: '', startDate: '', endDate: '', budget: '', currency: 'USD', visibility: 'private' },
     draftKey: 'create_trip_draft',
-    validate: (vals) => {
-      const errs = {};
-      if (!vals.title?.trim()) errs.title = 'Title is required';
-      if (!vals.destination?.trim()) errs.destination = 'Destination is required';
-      if (!vals.startDate) errs.startDate = 'Start date is required';
-      if (!vals.endDate) errs.endDate = 'End date is required';
-      if (vals.startDate && vals.endDate && new Date(vals.startDate) > new Date(vals.endDate)) errs.endDate = 'End date must be after start date';
-      if (!vals.budget || Number(vals.budget) <= 0) errs.budget = 'Budget must be > 0';
-      return errs;
-    },
+    validate,
     onSubmit: () => {}
   });
 
