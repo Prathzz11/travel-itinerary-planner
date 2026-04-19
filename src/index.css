@@ -1,0 +1,264 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700&display=swap');
+@import './styles/variables.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-primary);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  overflow: hidden; /* Prevent scrolling on body, let the scene fill and container scroll */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  outline: none;
+}
+
+/* Accessibility Focus States */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Remove default focus if mouse-clicked (handled by browser, enforced here for some inputs) */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip to content link */
+.skip-to-content {
+  position: absolute;
+  top: -100px;
+  left: 20px;
+  background: var(--color-primary);
+  color: white;
+  padding: 8px 16px;
+  z-index: 9999;
+  border-radius: var(--radius-md);
+  transition: top 0.2s;
+  font-weight: bold;
+}
+
+.skip-to-content:focus {
+  top: 20px;
+}
+
+/* Base App Layout */
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+  width: 100vw;
+  overflow: hidden; /* body is fixed; main is the scroll container */
+}
+
+/* Utility Classes */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-lg);
+}
+
+.page-container {
+  position: relative;
+  z-index: var(--z-content);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  min-height: 0; /* Let parent (main) scroll instead */
+  pointer-events: auto;
+}
+
+/* Scrollbar styling for the main scroll container */
+main::-webkit-scrollbar {
+  width: 6px;
+}
+main::-webkit-scrollbar-track {
+  background: transparent;
+}
+main::-webkit-scrollbar-thumb {
+  background: var(--color-surface);
+  border-radius: var(--radius-full);
+}
+main::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-hover);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* =========================================
+   RESPONSIVE DESIGN SYSTEM
+   ========================================= */
+
+/* Typography Scaling */
+html {
+  font-size: 16px;
+}
+@media (max-width: 768px) {
+  html { font-size: 14px; }
+  h1 { font-size: 2rem !important; }
+  h2 { font-size: 1.5rem !important; }
+}
+
+/* Helper Classes */
+.hide-on-mobile { display: flex; }
+.show-on-mobile { display: none; }
+
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 250px) 1fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.responsive-flex {
+  display: flex;
+  gap: var(--space-4);
+}
+
+/* Mobile Breakpoint (< 768px) */
+@media (max-width: 768px) {
+  .hide-on-mobile { display: none !important; }
+  .show-on-mobile { display: flex !important; }
+  
+  .responsive-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .responsive-flex {
+    flex-direction: column;
+  }
+  
+  .page-container {
+    padding: var(--space-4);
+  }
+
+  .modal-overlay {
+    padding: 0 !important;
+  }
+
+  .responsive-modal {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+}
+
+/* =========================================
+   PRINT-FRIENDLY & EXPORT STYLING
+   ========================================= */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+  }
+
+  .page-container {
+    margin-top: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide UI elements */
+  nav, header, footer, button, .hide-on-print, .no-print, #scene-3d-container {
+    display: none !important;
+  }
+
+  /* Specific Layout Resets */
+  .glass-panel {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: black !important;
+  }
+
+  .print-area {
+    display: block !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+
+  * {
+    color: black !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Keep basic structural borders */
+  div[style*="border"], 
+  .print-border {
+    border-color: #ddd !important;
+  }
+
+  /* Page Breaks */
+  h2, h3 {
+    page-break-after: avoid;
+  }
+  
+  .page-break-before {
+    page-break-before: always;
+  }
+  
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+}
+
+
