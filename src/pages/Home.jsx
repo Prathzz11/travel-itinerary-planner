@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Map, Users, Calendar, Compass } from 'lucide-react';
+import { Map, Users, Calendar } from 'lucide-react';
 
 const Home = () => {
   return (
@@ -8,7 +8,7 @@ const Home = () => {
       <div className="card p-4 p-md-5 text-center animate-fade-in" style={{ maxWidth: '800px' }}>
         <div className="card-body d-flex flex-column align-items-center gap-4">
           <div className="animate-scale-in">
-            <Compass size={64} color="var(--color-primary)" />
+            <img src="/navigation.png" alt="TravelSync" style={{ height: '80px', width: 'auto' }} />
           </div>
           
           <h1 className="display-4 fw-bold mb-0">

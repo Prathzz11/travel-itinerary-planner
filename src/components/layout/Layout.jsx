@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Compass, LogOut, Menu, User, Settings as SettingsIcon } from 'lucide-react';
+import { LogOut, Menu, User, Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import Footer from './Footer';
 
@@ -47,7 +47,7 @@ const Layout = () => {
         <div className="container-fluid px-3 px-lg-4">
           {/* Brand */}
           <Link className="navbar-brand d-flex align-items-center gap-2" to="/">
-            <Compass color="var(--color-primary)" size={28} />
+            <img src="/navigation.png" alt="TravelSync Logo" style={{ height: '40px', width: 'auto' }} />
             <span className="text-gradient">TravelSync</span>
           </Link>
 
