@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Copy, Star, MapPin, Clock, DollarSign, Activity, Tag, ArrowLeft, X, CheckCircle, List, Home as HomeIcon, CreditCard } from 'lucide-react';
+import { Copy, Star, MapPin, Clock, IndianRupee, Activity, Tag, ArrowLeft, X, CheckCircle, List, Home as HomeIcon, CreditCard } from 'lucide-react';
 import { ExploreContext } from '../contexts/ExploreContext';
 import { TripContext } from '../contexts/TripContext';
 import ReviewSection from '../components/explore/ReviewSection';
@@ -59,7 +59,7 @@ const ExistingItineraryDetail = () => {
             </div>
             <div className="col-md-4 d-flex flex-column gap-3">
               <div className="card"><div className="card-body"><h6 className="mb-3">Created By</h6><Link to={`/user/${trip.author.id}`} className="d-flex align-items-center gap-3 text-decoration-none text-white"><img src={trip.author.avatar} alt={trip.author.name} className="rounded-circle" style={{ width: 50, height: 50, objectFit: 'cover' }} /><div><div className="fw-bold">{trip.author.name}</div><div className="small" style={{ color: 'var(--color-primary)' }}>View Profile</div></div></Link></div></div>
-              <div className="card"><div className="card-body"><h6 className="mb-3">Trip Overview</h6><div className="d-flex flex-column gap-3"><div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><Clock size={14} /> Duration</span><span className="fw-semibold">{trip.durationDays} Days</span></div><div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><DollarSign size={14} /> Budget</span><span className="fw-semibold">{trip.budget} {trip.currency}</span></div><div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><Activity size={14} /> Difficulty</span><span className="fw-semibold">{trip.difficulty}</span></div></div></div></div>
+              <div className="card"><div className="card-body"><h6 className="mb-3">Trip Overview</h6><div className="d-flex flex-column gap-3"><div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><Clock size={14} /> Duration</span><span className="fw-semibold">{trip.durationDays} Days</span></div><div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><IndianRupee size={14} /> Budget</span><span className="fw-semibold">{trip.budget} {trip.currency}</span></div><div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><Activity size={14} /> Difficulty</span><span className="fw-semibold">{trip.difficulty}</span></div></div></div></div>
             </div>
           </div>
         </div>

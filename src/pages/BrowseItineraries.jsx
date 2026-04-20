@@ -1,6 +1,6 @@
 import React, { useState, useContext, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Star, Copy, MapPin, DollarSign, Clock, Filter, ChevronDown, ChevronUp, Activity, X } from 'lucide-react';
+import { Search, Star, Copy, MapPin, IndianRupee, Clock, Filter, ChevronDown, ChevronUp, Activity, X } from 'lucide-react';
 import { ExploreContext } from '../contexts/ExploreContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -101,7 +101,7 @@ const BrowseItineraries = () => {
                   <div className="text-muted small d-flex align-items-center gap-1 mb-3"><MapPin size={12} /> {item.destination}</div>
                   <div className="row g-1 mb-3 small">
                     <div className="col-6 d-flex align-items-center gap-1"><Clock size={13} color="var(--color-secondary)" /> {item.durationDays} Days</div>
-                    <div className="col-6 d-flex align-items-center gap-1"><DollarSign size={13} color="var(--color-success)" /> {item.budget} {item.currency}</div>
+                    <div className="col-6 d-flex align-items-center gap-1"><IndianRupee size={13} color="var(--color-success)" /> {item.budget} {item.currency}</div>
                     <div className="col-6 d-flex align-items-center gap-1"><Activity size={13} color="var(--color-accent)" /> {item.difficulty}</div>
                     <div className="col-6 d-flex align-items-center gap-1"><Copy size={13} color="var(--color-primary)" /> {item.forks} Forks</div>
                   </div>

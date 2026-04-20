@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
-import { MapPin, Clock, DollarSign, Image as ImageIcon } from 'lucide-react';
+import { MapPin, Clock, IndianRupee, Image as ImageIcon } from 'lucide-react';
 
 const CATEGORY_COLORS = {
   'Accommodation': '#8b5cf6',

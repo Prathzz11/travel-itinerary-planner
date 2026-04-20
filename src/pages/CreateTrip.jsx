@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, DollarSign, Users, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
+import { MapPin, Calendar, IndianRupee, Users, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { useForm } from '../hooks/useForm';
 import { useNotification } from '../contexts/NotificationContext';
@@ -26,7 +26,7 @@ const CreateTrip = () => {
   }, []);
 
   const { values, errors, touched, handleChange, handleBlur, clearDraft } = useForm({
-    initialValues: { title: '', destination: '', startDate: '', endDate: '', budget: '', currency: 'USD', visibility: 'private' },
+    initialValues: { title: '', destination: '', startDate: '', endDate: '', budget: '', currency: 'INR', visibility: 'private' },
     draftKey: 'create_trip_draft',
     validate,
     onSubmit: () => {}
@@ -138,7 +138,7 @@ const CreateTrip = () => {
               {step === 3 && (
                 <div className="flex-grow-1 d-flex flex-column gap-4 animate-slide-left">
                   <div className="text-center">
-                    <DollarSign size={40} color="var(--color-success)" className="mb-2" />
+                    <IndianRupee size={40} color="var(--color-success)" className="mb-2" />
                     <h2 className="fs-3 fw-bold mb-1">Set a Budget</h2>
                     <p className="text-muted">How much are you planning to spend?</p>
                   </div>
@@ -149,7 +149,8 @@ const CreateTrip = () => {
                     </div>
                     <div className="col-4">
                       <select name="currency" className="form-select" value={values.currency} onChange={handleChange}>
-                        <option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="INR">INR (₹)</option>
+                        <option value="INR">INR (₹)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option>
+                        <option value="JPY">JPY (¥)</option><option value="AUD">AUD ($)</option><option value="CAD">CAD ($)</option>
                       </select>
                     </div>
                   </div>

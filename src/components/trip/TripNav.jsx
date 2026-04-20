@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Info, Map, DollarSign, Users, Ticket, Handshake, ArrowLeft, Share2 } from 'lucide-react';
+import { Info, Map, IndianRupee, Users, Ticket, Handshake, ArrowLeft, Share2 } from 'lucide-react';
 import { NotificationContext } from '../../contexts/NotificationContext';
 
 const TripNav = ({ tripId }) => {
@@ -28,7 +28,7 @@ const TripNav = ({ tripId }) => {
       <ul className="nav nav-tabs mb-3 no-print">
         <li className="nav-item"><NavLink to={`/trip/${tripId}`} end className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Info size={16} /> Overview</NavLink></li>
         <li className="nav-item"><NavLink to={`/trip/${tripId}/itinerary`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Map size={16} /> Itinerary</NavLink></li>
-        <li className="nav-item"><NavLink to={`/trip/${tripId}/budget`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><DollarSign size={16} /> Budget</NavLink></li>
+        <li className="nav-item"><NavLink to={`/trip/${tripId}/budget`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><IndianRupee size={16} /> Budget</NavLink></li>
         <li className="nav-item"><NavLink to={`/trip/${tripId}/settlements`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Handshake size={16} /> Settle Up</NavLink></li>
         <li className="nav-item"><NavLink to={`/trip/${tripId}/bookings`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Ticket size={16} /> Bookings</NavLink></li>
         <li className="nav-item"><NavLink to={`/trip/${tripId}/members`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Users size={16} /> Members</NavLink></li>

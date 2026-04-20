@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, MapPin, Copy, Clock, DollarSign, Activity, Edit3 } from 'lucide-react';
+import { Star, MapPin, Copy, Clock, IndianRupee, Activity, Edit3 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { ExploreContext } from '../contexts/ExploreContext';
 
@@ -60,7 +60,7 @@ const Profile = () => {
                   <div className="text-muted small mb-3 d-flex align-items-center gap-1"><MapPin size={12} /> {item.destination}</div>
                   <div className="row g-2 mb-3 small">
                     <div className="col-6 d-flex align-items-center gap-1"><Clock size={14} color="var(--color-secondary)" /> {item.durationDays} Days</div>
-                    <div className="col-6 d-flex align-items-center gap-1"><DollarSign size={14} color="var(--color-success)" /> {item.budget} {item.currency}</div>
+                    <div className="col-6 d-flex align-items-center gap-1"><IndianRupee size={14} color="var(--color-success)" /> {item.budget} {item.currency}</div>
                     <div className="col-6 d-flex align-items-center gap-1"><Activity size={14} color="var(--color-accent)" /> {item.difficulty}</div>
                     <div className="col-6 d-flex align-items-center gap-1"><Copy size={14} color="var(--color-primary)" /> {item.forks} Forks</div>
                   </div>

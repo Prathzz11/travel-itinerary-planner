@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Clock, MapPin, DollarSign, Image as ImageIcon, Tag, FileText } from 'lucide-react';
+import { X, Clock, MapPin, IndianRupee, Image as ImageIcon, Tag, FileText } from 'lucide-react';
 import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
 import { useParams } from 'react-router-dom';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
@@ -11,7 +11,7 @@ const ActivityModal = ({ isOpen, onClose, onSave, initialData = null }) => {
 
   const defaultForm = {
     title: '', time: '09:00', duration: '1h', category: 'Sightseeing', 
-    location: '', lat: null, lng: null, cost: 0, currency: 'USD', notes: '', images: ''
+    location: '', lat: null, lng: null, cost: 0, currency: 'INR', notes: '', images: ''
   };
 
   const [form, setForm] = useLocalStorage('activity_draft', defaultForm);
@@ -103,11 +103,11 @@ const ActivityModal = ({ isOpen, onClose, onSave, initialData = null }) => {
                   )}
                 </div>
                 <div className="mb-3">
-                  <label className="form-label text-muted"><DollarSign size={14} className="me-1" />Cost</label>
+                  <label className="form-label text-muted"><IndianRupee size={14} className="me-1" />Cost</label>
                   <div className="input-group">
                     <input type="number" className="form-control" value={form.cost} onChange={e => setForm({...form, cost: Number(e.target.value)})} />
                     <select className="form-select" style={{ maxWidth: 90 }} value={form.currency} onChange={e => setForm({...form, currency: e.target.value})}>
-                      <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="JPY">JPY</option>
+                      <option value="INR">INR</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="JPY">JPY</option><option value="AUD">AUD</option><option value="CAD">CAD</option>
                     </select>
                   </div>
                 </div>

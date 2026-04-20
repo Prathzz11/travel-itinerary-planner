@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, Clock, DollarSign, Edit2, Trash2, Users } from 'lucide-react';
+import { MapPin, Calendar, Clock, IndianRupee, Edit2, Trash2, Users } from 'lucide-react';
 import { formatTripDates, getTripDuration, formatCurrency } from '../../utils/formatters';
 import { getTripStatus, getBudgetStatus } from '../../utils/categoryConfig';
 import ConfirmDialog from '../ui/ConfirmDialog';
@@ -65,7 +65,7 @@ const TripCard = ({ trip, onDelete }) => {
           {trip.budget > 0 && (
             <div className="pt-2 border-top">
               <div className="d-flex justify-content-between small mb-1">
-                <span className="text-muted d-flex align-items-center gap-1"><DollarSign size={11} /> Budget</span>
+                <span className="text-muted d-flex align-items-center gap-1"><IndianRupee size={11} /> Budget</span>
                 <span className="fw-semibold" style={{ color: budgetSt.color }}>{budgetSt.label}</span>
               </div>
               <div className="progress" style={{ height: 5 }}>

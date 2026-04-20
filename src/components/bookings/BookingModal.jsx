@@ -8,8 +8,8 @@ const BookingModal = ({ isOpen, onClose, onSave, type, initialData = null }) => 
     if (initialData) {
       setForm({ ...initialData, amenities: initialData.amenities ? initialData.amenities.join(', ') : '', images: initialData.images ? initialData.images.join(', ') : '' });
     } else {
-      if (type === 'hotel') setForm({ type: 'hotel', name: '', address: '', checkIn: '', checkOut: '', roomType: '', cost: 0, currency: 'USD', amenities: '', bookingRef: '', link: '', images: '' });
-      else setForm({ type: 'flight', airline: '', flightNumber: '', departureTime: '', arrivalTime: '', cost: 0, currency: 'USD', bookingRef: '', link: '' });
+      if (type === 'hotel') setForm({ type: 'hotel', name: '', address: '', checkIn: '', checkOut: '', roomType: '', cost: 0, currency: 'INR', amenities: '', bookingRef: '', link: '', images: '' });
+      else setForm({ type: 'flight', airline: '', flightNumber: '', departureTime: '', arrivalTime: '', cost: 0, currency: 'INR', bookingRef: '', link: '' });
     }
   }, [initialData, isOpen, type]);
 
@@ -60,7 +60,7 @@ const BookingModal = ({ isOpen, onClose, onSave, type, initialData = null }) => 
                   </>
                 )}
                 <div className="row g-3 mb-3">
-                  <div className="col-md-6"><label className="form-label text-muted">Total Cost</label><div className="input-group"><input type="number" className="form-control" value={form.cost || 0} onChange={e => setForm({...form, cost: Number(e.target.value)})} /><select className="form-select" style={{ maxWidth: 90 }} value={form.currency || 'USD'} onChange={e => setForm({...form, currency: e.target.value})}><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></div></div>
+                  <div className="col-md-6"><label className="form-label text-muted">Total Cost</label><div className="input-group"><input type="number" className="form-control" value={form.cost || 0} onChange={e => setForm({...form, cost: Number(e.target.value)})} /><select className="form-select" style={{ maxWidth: 90 }} value={form.currency || 'INR'} onChange={e => setForm({...form, currency: e.target.value})}><option value="INR">INR</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="JPY">JPY</option><option value="AUD">AUD</option><option value="CAD">CAD</option></select></div></div>
                   <div className="col-md-6"><label className="form-label text-muted">Booking Reference</label><input type="text" className="form-control" value={form.bookingRef || ''} onChange={e => setForm({...form, bookingRef: e.target.value})} placeholder="e.g. ABC123X" /></div>
                 </div>
                 <div className="mb-3"><label className="form-label text-muted">Booking Link</label><input type="url" className="form-control" value={form.link || ''} onChange={e => setForm({...form, link: e.target.value})} placeholder="https://..." /></div>

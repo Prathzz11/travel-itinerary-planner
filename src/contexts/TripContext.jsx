@@ -20,7 +20,7 @@ export const TripProvider = ({ children }) => {
       status: 'planning',
       budget: 4500,
       spent: 1250,
-      currency: 'USD',
+      currency: 'INR',
       visibility: 'private',
       createdAt: '2026-04-10T10:00:00Z',
       updatedAt: '2026-04-12T14:30:00Z',

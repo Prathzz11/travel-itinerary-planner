@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, DollarSign, Tag, Calendar, FileText, Image as ImageIcon, Users } from 'lucide-react';
+import { X, IndianRupee, Tag, Calendar, FileText, Image as ImageIcon, Users } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 
@@ -50,7 +50,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null
         <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
           <div className="modal-content animate-scale-in">
             <div className="modal-header">
-              <h5 className="modal-title d-flex align-items-center gap-2"><DollarSign size={20} color="var(--color-success)" /> {initialData ? 'Edit Expense' : 'Add Expense'}</h5>
+              <h5 className="modal-title d-flex align-items-center gap-2"><IndianRupee size={20} color="var(--color-success)" /> {initialData ? 'Edit Expense' : 'Add Expense'}</h5>
               <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
             </div>
             <div className="modal-body">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { MapPin, Calendar, Users, Activity, Edit2, Trash2, Clock, DollarSign, X, Globe, Lock } from 'lucide-react';
+import { MapPin, Calendar, Users, Activity, Edit2, Trash2, Clock, IndianRupee, X, Globe, Lock } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { ExploreContext } from '../contexts/ExploreContext';
 import TripNav from '../components/trip/TripNav';
@@ -87,7 +87,7 @@ const TripDetail = () => {
               <div className="row g-3">
                 <div className="col-4"><div className="card text-center py-3"><Activity size={24} color="var(--color-primary)" className="mx-auto mb-2" /><div className="fs-4 fw-bold">{trip.activitiesCount || 0}</div><div className="text-muted small">Activities</div></div></div>
                 <div className="col-4"><div className="card text-center py-3"><Users size={24} color="var(--color-secondary)" className="mx-auto mb-2" /><div className="fs-4 fw-bold">{trip.members?.length || 1}</div><div className="text-muted small">Members</div></div></div>
-                <div className="col-4"><div className="card text-center py-3"><DollarSign size={24} color="var(--color-success)" className="mx-auto mb-2" /><div className="fs-6 fw-bold">{trip.budget ? `${trip.budget.toLocaleString()} ${trip.currency || 'USD'}` : 'N/A'}</div><div className="text-muted small">Budget</div></div></div>
+                <div className="col-4"><div className="card text-center py-3"><IndianRupee size={24} color="var(--color-success)" className="mx-auto mb-2" /><div className="fs-6 fw-bold">{trip.budget ? `${trip.budget.toLocaleString()} ${trip.currency || 'INR'}` : 'N/A'}</div><div className="text-muted small">Budget</div></div></div>
               </div>
             </div>
             <div className="col-md-6">

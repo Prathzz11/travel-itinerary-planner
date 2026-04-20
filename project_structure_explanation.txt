@@ -1,0 +1,188 @@
+TRAVEL ITINERARY PLANNER - COMPREHENSIVE PROJECT EXPLANATION
+
+This document provides a highly detailed explanation of every file and folder in the project. It is structured to be read as a comprehensive manual for your viva, detailing the exact role, purpose, and utility of every component that makes up your React Single Page Application. 
+
+CONFIGURATION AND ROOT FILES
+
+package.json and package-lock.json
+These files serve as the absolute core of the Node.js project environment. The core package JSON file defines all the metadata about your web application, including its name, current version, and execution scripts such as the command you use to launch the development server. Furthermore, it strictly defines every third party dependency and open source library the project relies on, such as React, React Router, and Axios. The accompanied lock file ensures that exactly the same versions of these libraries are installed on any machine, granting deterministic and safe builds.
+
+vite.config.js
+This file governs the configuration for Vite, which is the extremely fast, native frontend build tool used to serve your project. This configuration allows Vite to parse your React JSX files, offer hot module replacement so the browser updates instantly when you press save, and ultimately bundle all of your scattered javascript files into optimized, compiled assets for production deployment.
+
+index.html
+This single HTML file is the foundation of your Single Page Application. When a user navigates to your website, this is the only HTML file the server ever provides. Inside the body tag, there is an empty div element with the ID of root. Once this file loads in the browser, your compiled JavaScript takes over entirely, rendering the entire Travel Itinerary Planner application dynamically into that single, empty div element.
+
+.gitignore
+The git ignore file tells your version control system exactly which files it should never upload or track. This is crucial for avoiding the upload of locally generated folders like the massive node_modules folder, or potentially sensitive local environment variables that you do not want hosted publicly on GitHub.
+
+syllabus_analysis.md
+The syllabus analysis file provides an academic breakdown of how the implemented features relate to specific coursework units and laboratory requirements.
+
+PUBLIC ASSETS
+
+public/bg-globe.mp4
+This file is a localized high-definition video asset. It is placed in the public folder so that it can be directly referenced by URL without being altered by the bundler. It serves as a continuous, visually impressive animated background loop behind your web application to give the project a premium, travel-oriented aesthetic.
+
+public/favicon.svg and public/icons.svg
+These scalable vector graphic files exist in the public directory to provide browser-level iconography. The favicon appears directly in the user's browser tab. Because they are in the public folder, the HTML document can load them instantly before the React application even begins to boot up.
+
+MAIN REACT APPLICATION FILES (src folder)
+
+src/main.jsx
+This is the absolute genesis point of your React application. When the website boots up, this file searches the index.html file for the root div and attaches the React application to it. It imports your top-level CSS routines and wraps the core application inside strict mode, which doubly runs checks in development to catch silent rendering issues.
+
+src/App.jsx
+The App file is the structural backbone of your platform. It primarily establishes the React Router map, linking specific URL endpoints in the browser to their corresponding visual pages (for instance, linking the /login URL to the actual Login component). It also systematically wraps all of these pages inside all of your global context providers, ensuring that every page has access to shared memory, authentications, and global themes.
+
+src/index.css
+This standard stylesheet applies cascading rules across the entire application interface. It resets default browser behaviors, eliminating margins and padding on the body element. It also handles global imports for typography and provides standard styling to HTML baseline elements that every page will inherit.
+
+STYLE AND ASSET FOLDERS
+
+src/styles/variables.css
+This dedicated styling file operates as your central design system repository. Rather than hardcoding colors and sizes thousands of times across the application, this file establishes global CSS custom properties. This makes it incredibly easy to enforce exact branding colors, standardize border radiuses, and makes implementing light or dark mode toggles completely seamless.
+
+src/assets/hero.png, react.svg, vite.svg
+These are static, visual media assets imported intrinsically into your React layouts. Unlike public assets, assets stored in this folder are hashed and aggressively aggressively minified by the Vite bundler during production builds to guarantee lighting-fast loading speeds for your end user.
+
+CONTEXT PROVIDERS (src/contexts)
+
+src/contexts/AuthContext.jsx
+This context acts as the centralized authority representing the user's security and identity status. It remembers if the user is logged in, stores user preferences like display name and currency, and allows any component in the application to instantly determine exactly who is currently browsing the system.
+
+src/contexts/TripContext.jsx
+The Trip Context wraps global memory regarding the overarching trips a user is involved in. It maintains a persistent top-level list of upcoming destinations, the duration of those tours, the people who have been invited, and their respective permissions as viewers or editors.
+
+src/contexts/ItineraryContext.jsx
+Where the trip context handles top-level data, the Itinerary Context drills down into the specific, micro-level daily planning. It hosts state arrays to track individual events across travel days, mapping exact hours to specific flights, hotel check-ins, or dinner reservations, creating a timeline engine.
+
+src/contexts/BookingContext.jsx
+This context explicitly manages external documentation. When a user uploads a flight confirmation number or a hotel booking link, this state manager retains those records globally across the session so they can be parsed out and attached to multiple different days or summary views.
+
+src/contexts/ExpenseContext.jsx
+The Expense Context implements financial tracking. It is responsible for globally holding state associated with every penny spent, allowing the application to add up individual food and transport expenses to instantly project if the user is meeting their total target travel budget.
+
+src/contexts/ExploreContext.jsx
+This specific state provider manages the social, community-driven aspect of the application. It fetches and retains public itineraries created by other users in the ecosystem, caching them in memory so users can rapidly search, filter, and fork popular travel templates without lag.
+
+src/contexts/NotificationContext.jsx
+This provider wraps the entire application with an invisible alert mechanism. Subscribing to this context allows any component that experiences an error, or achieves a successful save, to instantly trigger a floating toast notification alert in the corner of the user's screen.
+
+CUSTOM REACT HOOKS (src/hooks)
+
+src/hooks/useAuth.js and src/hooks/useTrip.js
+These custom hooks act as developer-friendly syntactic sugar. Rather than manually importing raw Context objects over and over, these helper functions reduce boilerplate overhead and instantly expose all required context variables to whichever component calls them.
+
+src/hooks/useDebounce.js
+The debounce hook is a performance optimization tool. If a user is rapidly typing in a search bar, this hook purposefully intercepts the keystrokes and waits for the user to pause for a fraction of a second before signaling the backend, drastically reducing unnecessary server stress and API calls.
+
+src/hooks/useForm.js
+This hook completely encapsulates the repetitive logic of managing form inputs. Whenever an application needs a user to type out information, this hook binds the text to state, validates complex business logic like making sure an email is properly formatted, and retains drafts across the platform.
+
+src/hooks/useLocalStorage.js
+This incredibly powerful memory hook perfectly mimics React's native state hook, with one monumental addition: it constantly synchronizes the data directly into the user's browser storage. This guarantees that if the user refreshes the page or their computer restarts, their itinerary progress instantly returns exactly as they left it.
+
+UI COMPONENTS (src/components)
+
+src/components/auth/RoleGuard.jsx
+This component acts as a security sentry around sensitive elements of the interface. You can wrap any piece of visual interface inside this element, and this Role Guard will check the user's current security clearance, completely destroying the visual code if the user is not authorized to edit that section.
+
+src/components/bookings/BookingModal.jsx
+Whenever a user wants to input complex transportation or hotel data, this component summons a focused, screen-darkening overlay. It provides highly specific layouts tailored to flight times and hotel amenities, capturing the user data securely before passing it back to the global state.
+
+src/components/budget/ExpenseModal.jsx and SettlementModal.jsx
+The expense modal manages direct financial entries, permitting a user to input a receipt value and mark what it purchased. The settlement modal solves complex peer-to-peer relationships, functioning as a ledger that tracks when one friend pays for another, allowing the group to calculate who owes who at the end of the trip.
+
+src/components/explore/ReviewSection.jsx
+This component adds social verification to the platform. Hooked into public itineraries, it dynamically maps out user generated star ratings and written comments, providing credibility and feedback visibility directly underneath public templates.
+
+src/components/itinerary/ActivityModal.jsx
+This complex interface allows users to insert block-level scheduling items into their days. It handles time capture, address and mapping lookup queries, duration calculations, and integrates cost assignment all at the moment of creating a single timeline event.
+
+src/components/layout/Footer.jsx and Layout.jsx
+The Layout component serves as the persistent scaffolding for the application framing. It wraps dynamic pages with static headers. The Footer component anchors the bottom of every page, commonly supplying branding information, legal links, and navigation assistance uniform to every URL.
+
+src/components/map/InteractiveMap.jsx
+This highly visual component integrates directly with the Google Maps external mapping Canvas. It converts itinerary addresses into precise latitude and longitude markers, mapping pins physically onto a rendered map surface so travelers can contextualize the geographical path of their daily plans.
+
+src/components/trip/TripCard.jsx and TripNav.jsx
+The trip card acts as a beautiful, highly clickable gallery preview of an upcoming travel plan designed for dashboard layout tracking. The trip navigation is an isolated secondary menu attached specifically inside a trip allowing users to swap rapidly between the budget, calendar, and mapping views of a singular destination.
+
+src/components/ui/ConfirmDialog.jsx, EmptyState.jsx, ErrorState.jsx
+These are abstract utility components designed to be used everywhere. The confirm dialog forces users to rethink deletion acts. The empty state guarantees that when a user has zero trips, a friendly call-to-action replaces the blank screen. The error state captures devastating application crashes, saving the browser from displaying a white screen of death.
+
+src/components/ui/LoadingButton.jsx and LoadingSpinner.jsx
+These visual components prevent dead clicks. They ensure that while an asynchronous backend API save operation is in progress, buttons are locked down and spinners animate, providing crucial psychological feedback informing the user that the system is successfully thinking.
+
+src/components/ui/NotificationContainer.jsx
+This functional UI component lies invisibly over the entire application. It constantly listens to the Notification Context, spawning floating toast alerts and dismissing them visually whenever the underlying context memory updates, providing centralized global messaging.
+
+ROUTER PAGES (src/pages)
+
+src/pages/Login.jsx and Signup.jsx
+These pages provide the isolated visual interface gateway dedicated purely to capturing credentials. They operate independently of the primary application layout and manage strict error parsing logic against the authentication service to ensure secure entrance into the protected ecosystem.
+
+src/pages/Home.jsx
+Functioning as the application's premier landing splash zone, the home page focuses on marketing, immediately hooking visitors with stunning hero visuals, value propositions, and direct call-to-action buttons designed to convince them to register and explore the toolset.
+
+src/pages/Dashboard.jsx and MyTemplates.jsx
+The Dashboard serves as the central operational hub for a logged-in user, greeting them post-login and aggregating all of their active and historical trips into accessible grids. The Templates variant specifically isolates and focuses on trips the user has explicitly flagged as reusable boilerplates.
+
+src/pages/CreateTrip.jsx and ForkItinerary.jsx
+The Create page utilizes an intensive multi-step onboarding wizard to guide users easily through establishing destination, duration, budgeting, and privacy parameters. The Fork page clones these parameters by acting as an automatic duplicator that copies another user's entire timeline into their own personal space.
+
+src/pages/TripDetail.jsx and Itinerary.jsx
+The Detail view acts as an intricate analytical summary for the specific trip, isolating key stats and activity counts visually. The Itinerary page provides the deep, chronological canvas that chronologically lists, re-orders, and maps the timeline events day by day for intense trip planning.
+
+src/pages/BudgetPage.jsx and SettlementsPage.jsx
+These pages operate as the centralized financial arm. The budget page visualizes total cash flow metrics using pie charts to analyze runaway spending variables versus a hard limit. The settlements page provides a debt ledger simplifying total expenses owed to the various friends traveling together.
+
+src/pages/MembersPage.jsx
+This page delegates strict administrative tracking. The creator can view exactly which friends possess viewing or editing rights on the itinerary, allowing them to directly manage platform access, send invitations, or kick abusive members off of a project instantly.
+
+src/pages/BrowseItineraries.jsx and PublicProfile.jsx
+The Browse page executes an open-world search algorithm over the global server template database, rendering trending trips generated by others to spark inspiration. The public profile drills down into a specific creator's timeline to showcase every itinerary they have shared with the community.
+
+src/pages/Settings.jsx
+This page delegates comprehensive global user configurations. It centralizes interface options regarding how the application operates on their specific machine, encompassing language preference variables, security password changes, and the baseline currency variables used globally inside the platform.
+
+src/pages/BookingsPage.jsx
+This page operates an aggregated list visualizing all hotel, train, and flight confirmation reservations in one single view, allowing quick reference lookup to ticket codes without having to search through specific chronological itinerary days.
+
+src/pages/AboutUs.jsx, Careers.jsx, PrivacyPolicy.jsx, TermsOfService.jsx, NotFound.jsx
+The static marketing and generic informational routes. While crucial for legal compliance and company background processing, these components lack intensive data fetching logic. The NotFound page intercepts impossible URLs and redirects users beautifully back into the actual application ecosystem.
+
+DATA BINDING SERVICES (src/services)
+
+src/services/api.js
+This file intercepts and configures outgoing HTTP infrastructure before making contact with the database. Utilizing an Axios wrapper, it injects essential security identity tokens into headers uniformly across every network call, significantly reducing the security footprint and logic errors throughout the application.
+
+src/services/authService.js, tripService.js, itineraryService.js, expenseService.js
+These modular service files decouple the database requests from the visual code interface. Any time a component needs data, it invokes these abstracted services, ensuring that the actual logic of interacting with database calls, mock arrays, or backend REST API paths is kept clean, organized, and centrally encapsulated.
+
+src/services/templateService.js
+This particular service is exclusively modeled to hit external endpoints related to community sourcing. It governs interactions associated with pulling lists of globally published public itineraries, processing the algorithms tracking fake ratings, or submitting user-created timelines into the public domain.
+
+UTILITIES AND HELPERS (src/utils)
+
+src/utils/formatters.js
+Because raw numbers and strings pulled from basic text inputs are visually unappealing, these abstracted formatter functions automatically process basic integers into precisely formatted native locale variations, converting standard numbers into visually stunning decimal-adjusted currencies or appropriately shortened date formats.
+
+src/utils/helpers.js
+This file serves as a simple toolkit repository. It contains reusable string manipulation, logic branching, or baseline mathematical processing algorithms separated away from the complex visuals, ensuring complex data transformations remain reusable in any location in the codebase.
+
+src/utils/validators.js
+Security relies heavily on this utility. It establishes stringent regular expression models and strict boolean testing checks that ensure that incoming user data, such as a username limit or an email address shape, explicitly matched defined safe schemas before allowing an API save mechanism to fire.
+
+src/utils/settlements.js
+This specialized utility contains graph-theory simplification code. Specifically addressing peer-to-peer travel expenses where individuals buy different items for the entire group concurrently, this algorithm iterates through complex multi-directional debts and mathematically simplifies them down into unified direct repayment routes.
+
+src/utils/categoryConfig.js and constants.js
+These foundational files protect the platform against typo-driven errors. By storing dropdown lists, currency maps, and categorical tags strictly inside un-editable, centralized variables array constants, the application ensures data consistency universally across multiple dropdown rendering menus.
+
+src/utils/imageCompression.js
+This performance utility directly intercepts massive mobile picture uploads inside the browser memory. Instead of uploading painful ten megabyte high resolution pictures directly over the database, it automatically uses canvas resizing to compress image weight down into tiny base64 strings ensuring network speeds are never dragged down.
+
+src/utils/logger.js and sanitize.js
+These baseline files provide deep platform monitoring and cross site scripting defense. The logger bypasses typical browser consoles, collecting application stack trace routes dynamically against production bugs. The sanitizer explicitly strips dangerous unescaped HTML commands submitted through notes attempting to hijack browser behaviors.

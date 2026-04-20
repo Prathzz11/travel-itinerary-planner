@@ -1,6 +1,6 @@
 import React, { useState, useContext, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { DollarSign, Plus, List, Filter, ChevronDown, ChevronUp, Edit2, Trash2, Tag, Calendar, User, AlignLeft, Search, AlertTriangle, Download, Edit3, Check, Users, Printer } from 'lucide-react';
+import { IndianRupee, Plus, List, Filter, ChevronDown, ChevronUp, Edit2, Trash2, Tag, Calendar, User, AlignLeft, Search, AlertTriangle, Download, Edit3, Check, Users, Printer } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { useDebounce } from '../hooks/useDebounce';
 import { ExpenseContext } from '../contexts/ExpenseContext';
@@ -75,7 +75,7 @@ const BudgetPage = () => {
 
   const exportCSV = () => {
     const headers = ['Date', 'Description', 'Category', 'Amount', 'Currency', 'Paid By', 'Split Type'];
-    const rows = expenses.map(exp => [new Date(exp.date).toLocaleDateString(), `"${exp.description}"`, exp.category, exp.amount, exp.currency || 'USD', `"${getMemberName(exp.paidBy)}"`, exp.splitType]);
+    const rows = expenses.map(exp => [new Date(exp.date).toLocaleDateString(), `"${exp.description}"`, exp.category, exp.amount, exp.currency || 'INR', `"${getMemberName(exp.paidBy)}"`, exp.splitType]);
     const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
     const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `${trip.title.replace(/\s+/g, '_')}_expenses.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };

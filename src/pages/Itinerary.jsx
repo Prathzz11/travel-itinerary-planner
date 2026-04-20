@@ -1,6 +1,6 @@
 import React, { useState, useContext, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Calendar as CalendarIcon, Plus, Map as MapIcon, Search, Filter, Trash2, Edit2, ChevronDown, ChevronUp, DollarSign, User, Printer, CheckCircle, Circle, GripVertical } from 'lucide-react';
+import { MapPin, Calendar as CalendarIcon, Plus, Map as MapIcon, Search, Filter, Trash2, Edit2, ChevronDown, ChevronUp, IndianRupee, User, Printer, CheckCircle, Circle, GripVertical } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { useDebounce } from '../hooks/useDebounce';
 import { ItineraryContext } from '../contexts/ItineraryContext';
@@ -153,7 +153,7 @@ const Itinerary = () => {
                             {isExpanded && (
                               <div className="mt-3 pt-3 border-top animate-fade-in">
                                 <div className="row g-3 mb-3">
-                                  <div className="col-6 text-muted small d-flex align-items-center gap-1"><DollarSign size={14} color="var(--color-success)" /> Cost: {act.cost > 0 ? `${act.cost} ${act.currency}` : 'Free'}</div>
+                                  <div className="col-6 text-muted small d-flex align-items-center gap-1"><IndianRupee size={14} color="var(--color-success)" /> Cost: {act.cost > 0 ? `${act.cost} ${act.currency}` : 'Free'}</div>
                                   <div className="col-6 text-muted small d-flex align-items-center gap-1"><User size={14} color="var(--color-secondary)" /> Added by: {act.creator}</div>
                                 </div>
                                 {act.notes && <div className="p-2 rounded-2 small mb-3" style={{ background: 'rgba(0,0,0,0.2)' }}><strong>Notes:</strong> <span className="text-muted">{act.notes}</span></div>}

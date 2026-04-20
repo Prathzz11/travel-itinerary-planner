@@ -13,7 +13,7 @@ const Settings = () => {
   const [name, setName] = useState(user?.name || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [avatar, setAvatar] = useState(user?.avatar || '');
-  const [currency, setCurrency] = useState(user?.preferences?.currency || 'USD');
+  const [currency, setCurrency] = useState(user?.preferences?.currency || 'INR');
   const [language, setLanguage] = useState(user?.preferences?.language || 'en');
   const [dateFormat, setDateFormat] = useState(user?.preferences?.dateFormat || 'MM/DD/YYYY');
   const [timezone, setTimezone] = useState(user?.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -26,7 +26,7 @@ const Settings = () => {
       setName(user.name || '');
       setBio(user.bio || '');
       setAvatar(user.avatar || '');
-      setCurrency(user.preferences?.currency || 'USD');
+      setCurrency(user.preferences?.currency || 'INR');
       setLanguage(user.preferences?.language || 'en');
       setDateFormat(user.preferences?.dateFormat || 'MM/DD/YYYY');
       setTimezone(user.preferences?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -122,8 +122,10 @@ const Settings = () => {
                   <div className="mb-3">
                     <label className="form-label text-muted">Default Currency</label>
                     <select className="form-select" style={{ maxWidth: 300 }} value={currency} onChange={e => setCurrency(e.target.value)}>
-                      <option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option>
+                      <option value="INR">INR (₹)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option>
                       <option value="JPY">JPY (¥)</option><option value="CAD">CAD ($)</option><option value="AUD">AUD ($)</option>
+                      <option value="CHF">CHF (Fr)</option><option value="CNY">CNY (¥)</option><option value="KRW">KRW (₩)</option>
+                      <option value="SGD">SGD (S$)</option><option value="AED">AED</option>
                     </select>
                   </div>
                   <div className="mb-3">

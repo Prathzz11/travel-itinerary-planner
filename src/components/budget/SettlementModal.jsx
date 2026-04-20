@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Handshake, DollarSign, Calendar, CreditCard, AlignLeft } from 'lucide-react';
+import { X, Handshake, IndianRupee, Calendar, CreditCard, AlignLeft } from 'lucide-react';
 
 const METHODS = ['Cash', 'Venmo', 'PayPal', 'Zelle', 'Bank Transfer', 'Other'];
 

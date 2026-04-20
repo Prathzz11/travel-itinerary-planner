@@ -1,5 +1,5 @@
 export const formatActivityTime = (time) => time;
-export const formatBudget = (amount) => `$${amount}`;
+export const formatBudget = (amount) => `₹${amount}`;
 
 // ============================================================
 // CURRENCY FORMATTING
@@ -10,7 +10,7 @@ const CURRENCY_SYMBOLS = {
   SGD: 'S$', MXN: 'MX$', BRL: 'R$', ZAR: 'R', AED: 'AED',
 };
 
-export const formatCurrency = (amount, currencyCode = 'USD') => {
+export const formatCurrency = (amount, currencyCode = 'INR') => {
   const symbol = CURRENCY_SYMBOLS[currencyCode] || currencyCode;
   const absAmount = Math.abs(amount || 0);
   const formatted = absAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

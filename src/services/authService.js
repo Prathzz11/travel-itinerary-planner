@@ -28,7 +28,7 @@ export const login = async (data) => {
         avatar: 'https://i.pravatar.cc/150?u=1',
         createdAt: '2025-01-15T08:00:00Z',
         role: 'admin', // Added mock role for RBAC
-        preferences: { currency: 'USD', language: 'en' }
+        preferences: { currency: 'INR', language: 'en' }
       }
     }
   };
@@ -51,7 +51,7 @@ export const signup = async (data) => {
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=random`,
         createdAt: new Date().toISOString(),
         role: 'admin', // Added mock role for RBAC
-        preferences: { currency: 'USD', language: 'en' }
+        preferences: { currency: 'INR', language: 'en' }
       }
     }
   };
@@ -76,7 +76,7 @@ export const getMe = async () => {
         avatar: 'https://i.pravatar.cc/150?u=1',
         createdAt: '2025-01-15T08:00:00Z',
         role: 'admin', // Added mock role for RBAC
-        preferences: { currency: 'USD', language: 'en' }
+        preferences: { currency: 'INR', language: 'en' }
       }
     }
   };

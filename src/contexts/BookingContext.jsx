@@ -17,7 +17,7 @@ export const BookingProvider = ({ children }) => {
         checkOut: '2026-06-20T11:00',
         roomType: 'Double Room - Non Smoking',
         cost: 750,
-        currency: 'USD',
+        currency: 'INR',
         amenities: ['WiFi', 'Breakfast', 'Gym'],
         bookingRef: 'HTL-847291',
         link: 'https://example.com/booking',
@@ -32,7 +32,7 @@ export const BookingProvider = ({ children }) => {
         departureTime: '2026-06-14T08:00',
         arrivalTime: '2026-06-15T10:00',
         cost: 1200,
-        currency: 'USD',
+        currency: 'INR',
         bookingRef: 'FLT-XYZ789',
         link: 'https://example.com/flight',
         creator: 'Test User'

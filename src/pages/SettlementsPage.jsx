@@ -1,6 +1,6 @@
 import React, { useState, useContext, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Handshake, ArrowRight, Printer, CheckCircle, Trash2, Calendar, CreditCard, DollarSign } from 'lucide-react';
+import { Handshake, ArrowRight, Printer, CheckCircle, Trash2, Calendar, CreditCard, IndianRupee } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { ExpenseContext } from '../contexts/ExpenseContext';
 import TripNav from '../components/trip/TripNav';
@@ -35,7 +35,7 @@ const SettlementsPage = () => {
             <h2 className="fs-3 mb-0 d-flex align-items-center gap-2"><Handshake size={24} color="var(--color-primary)" /> Settle Up</h2>
             <div className="d-flex gap-2">
               <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={() => window.print()}><Printer size={14} /> Print</button>
-              <button className="btn btn-primary btn-sm d-flex align-items-center gap-1" onClick={() => handleSettleClick()}><DollarSign size={14} /> Record Payment</button>
+              <button className="btn btn-primary btn-sm d-flex align-items-center gap-1" onClick={() => handleSettleClick()}><IndianRupee size={14} /> Record Payment</button>
             </div>
           </div>
           <TripNav tripId={trip.id} />
