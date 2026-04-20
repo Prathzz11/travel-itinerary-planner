@@ -24,7 +24,7 @@ PUBLIC ASSETS
 public/bg-globe.mp4
 This file is a localized high-definition video asset. It is placed in the public folder so that it can be directly referenced by URL without being altered by the bundler. It serves as a continuous, visually impressive animated background loop behind your web application to give the project a premium, travel-oriented aesthetic.
 
-public/favicon.svg and public/icons.svg
+public/navigation.png and public/icons.svg
 These scalable vector graphic files exist in the public directory to provide browser-level iconography. The favicon appears directly in the user's browser tab. Because they are in the public folder, the HTML document can load them instantly before the React application even begins to boot up.
 
 MAIN REACT APPLICATION FILES (src folder)
