@@ -7,22 +7,22 @@ import { useNotification } from '../contexts/NotificationContext';
 import { validateEmail } from '../utils/validators';
 import LoadingButton from '../components/ui/LoadingButton';
 
+const validate = (formValues) => {
+  const errs = {};
+  if (!formValues.name.trim()) errs.name = 'Name is required';
+  if (!formValues.email) errs.email = 'Email is required';
+  else if (!validateEmail(formValues.email)) errs.email = 'Invalid email address';
+  if (!formValues.password) errs.password = 'Password is required';
+  else if (formValues.password.length < 6) errs.password = 'Password must be at least 6 characters';
+  if (formValues.password !== formValues.confirmPassword) errs.confirmPassword = 'Passwords do not match';
+  return errs;
+};
+
 const Signup = () => {
   const { signup, loading } = useAuth();
   const navigate = useNavigate();
   const { addNotification } = useNotification();
   const [error, setError] = useState('');
-
-  const validate = (formValues) => {
-    const errs = {};
-    if (!formValues.name.trim()) errs.name = 'Name is required';
-    if (!formValues.email) errs.email = 'Email is required';
-    else if (!validateEmail(formValues.email)) errs.email = 'Invalid email address';
-    if (!formValues.password) errs.password = 'Password is required';
-    else if (formValues.password.length < 6) errs.password = 'Password must be at least 6 characters';
-    if (formValues.password !== formValues.confirmPassword) errs.confirmPassword = 'Passwords do not match';
-    return errs;
-  };
 
   const { values, errors, touched, isValid, handleChange, handleBlur, handleSubmit } = useForm({
     initialValues: { name: '', email: '', password: '', confirmPassword: '' },
