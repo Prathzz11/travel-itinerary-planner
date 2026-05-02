@@ -18,12 +18,21 @@ const TripDetail = () => {
   const [editForm, setEditForm] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const trip = trips?.find(t => t.id === id);
+  const trip = trips?.find(t => (t._id || t.id) === id);
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => { const timer = setTimeout(() => setIsLoading(false), 800); return () => clearTimeout(timer); }, [id]);
   React.useEffect(() => {
-    if (location.state?.autoEdit && trip) { setEditForm(trip); setIsEditing(true); navigate(location.pathname, { replace: true, state: {} }); }
+    if (location.state?.autoEdit && trip) { 
+      const formattedTrip = {
+        ...trip,
+        startDate: trip.startDate ? trip.startDate.split('T')[0] : '',
+        endDate: trip.endDate ? trip.endDate.split('T')[0] : ''
+      };
+      setEditForm(formattedTrip); 
+      setIsEditing(true); 
+      navigate(location.pathname, { replace: true, state: {} }); 
+    }
   }, [location.state?.autoEdit, trip, navigate, location.pathname]);
 
   if (isLoading) {
@@ -31,14 +40,21 @@ const TripDetail = () => {
   }
   if (!trip) { return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>; }
 
-  const handleEditClick = () => { setEditForm(trip); setIsEditing(true); };
+  const handleEditClick = () => { 
+    setEditForm({
+      ...trip,
+      startDate: trip.startDate ? trip.startDate.split('T')[0] : '',
+      endDate: trip.endDate ? trip.endDate.split('T')[0] : ''
+    }); 
+    setIsEditing(true); 
+  };
   const handleSaveEdit = (e) => {
     e.preventDefault();
     const processedForm = { ...editForm };
     if (typeof processedForm.tags === 'string') processedForm.tags = processedForm.tags.split(',').map(t => t.trim()).filter(Boolean);
     updateTrip(id, processedForm);
     if (processedForm.visibility === 'public' && trip.visibility !== 'public') {
-      publishTrip({ id: trip.id, title: processedForm.title, destination: processedForm.destination, author: { id: 'u1', name: 'Current User', avatar: 'https://i.pravatar.cc/150?u=u1' }, image: trip.image, budget: processedForm.budget, currency: trip.currency, durationDays: 7, difficulty: processedForm.difficulty || 'Moderate', tags: processedForm.tags || [], description: processedForm.description || '' });
+      publishTrip({ id: trip._id || trip.id, title: processedForm.title, destination: processedForm.destination, author: { id: 'u1', name: 'Current User', avatar: 'https://i.pravatar.cc/150?u=u1' }, image: trip.image, budget: processedForm.budget, currency: trip.currency, durationDays: 7, difficulty: processedForm.difficulty || 'Moderate', tags: processedForm.tags || [], description: processedForm.description || '' });
     }
     setIsEditing(false);
   };
@@ -78,7 +94,7 @@ const TripDetail = () => {
         </div>
 
         <div className="card-body p-4">
-          <TripNav tripId={trip.id} />
+          <TripNav tripId={trip._id || trip.id} />
           
           {/* Overview Grid */}
           <div className="row g-4">

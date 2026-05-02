@@ -11,7 +11,7 @@ const BookingsPage = () => {
   const { id } = useParams();
   const { trips } = useTrip();
   const { getBookings, addBooking, updateBooking, deleteBooking } = useContext(BookingContext);
-  const trip = trips?.find(t => t.id === id);
+  const trip = trips?.find(t => (t._id || t.id) === id);
   const bookings = getBookings(id);
   const [activeTab, setActiveTab] = useState('hotel');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,7 +32,7 @@ const BookingsPage = () => {
             <h2 className="fs-3 mb-0">{trip.title} - Bookings</h2>
             <button className="btn btn-primary btn-sm d-flex align-items-center gap-1" onClick={() => { setEditingBooking(null); setIsModalOpen(true); }}><Plus size={16} /> Add {activeTab === 'hotel' ? 'Hotel' : 'Flight'}</button>
           </div>
-          <TripNav tripId={trip.id} />
+          <TripNav tripId={trip._id || trip.id} />
         </div>
         <div className="card-body">
           {/* Tabs */}

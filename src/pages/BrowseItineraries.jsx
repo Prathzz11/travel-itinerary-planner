@@ -1,9 +1,10 @@
 import React, { useState, useContext, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Star, Copy, MapPin, IndianRupee, Clock, Filter, ChevronDown, ChevronUp, Activity, X } from 'lucide-react';
+import { Search, Star, Copy, MapPin, IndianRupee, Clock, Filter, ChevronDown, ChevronUp, Activity, X, CreditCard } from 'lucide-react';
 import { ExploreContext } from '../contexts/ExploreContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useAuth } from '../contexts/AuthContext';
 import EmptyState from '../components/ui/EmptyState';
 
 const BrowseItineraries = () => {
@@ -35,19 +36,38 @@ const BrowseItineraries = () => {
   const [displayedCount, setDisplayedCount] = useState(12);
   const observerTarget = useRef(null);
 
+  const [activeTab, setActiveTab] = useState('all');
+  const { user } = useAuth();
+
   const filteredAndSortedTrips = useMemo(() => {
     let result = [...publicTrips];
-    if (debouncedSearch) { const q = debouncedSearch.toLowerCase(); result = result.filter(t => t.title.toLowerCase().includes(q) || t.tags?.some(tag => tag.toLowerCase().includes(q))); }
-    if (debouncedDestination) result = result.filter(t => t.destination.toLowerCase().includes(debouncedDestination.toLowerCase()));
-    result = result.filter(t => (t.budget || 0) <= debouncedBudgetLimit);
-    if (minRating > 0) result = result.filter(t => (t.rating || 0) >= minRating);
-    if (difficultyFilter !== 'All') result = result.filter(t => t.difficulty === difficultyFilter);
-    if (durationFilter !== 'All') { if (durationFilter === 'Weekend (1-3 days)') result = result.filter(t => t.durationDays <= 3); else if (durationFilter === '1 Week') result = result.filter(t => t.durationDays > 3 && t.durationDays <= 7); else if (durationFilter === '2+ Weeks') result = result.filter(t => t.durationDays > 7); }
-    if (startDate) result = result.filter(t => new Date(t.createdAt) >= new Date(startDate));
-    if (endDate) result = result.filter(t => new Date(t.createdAt) <= new Date(endDate));
-    result.sort((a, b) => { if (sortBy === 'trending') return b.trendingScore - a.trendingScore; if (sortBy === 'popular') return b.forks - a.forks; if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0); if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt); return 0; });
+    
+    if (activeTab === 'recent') {
+      // recentlyViewed contains either populated template objects or raw IDs
+      const recentlyViewed = user?.recentlyViewed || [];
+      result = recentlyViewed.map(item => {
+        // If it's already a populated object (has a title), return it directly
+        if (item && typeof item === 'object' && item.title) {
+          // Ensure it's also present in publicTrips for consistency; if not, still show it
+          return item;
+        }
+        // Otherwise it's a raw ID string — look it up in publicTrips
+        const id = item?._id || item;
+        return publicTrips.find(t => t._id === id?.toString() || t.id === id?.toString());
+      }).filter(Boolean);
+    } else {
+      if (debouncedSearch) { const q = debouncedSearch.toLowerCase(); result = result.filter(t => t.title.toLowerCase().includes(q) || t.tags?.some(tag => tag.toLowerCase().includes(q))); }
+      if (debouncedDestination) result = result.filter(t => t.destination.toLowerCase().includes(debouncedDestination.toLowerCase()));
+      result = result.filter(t => (t.budget || 0) <= debouncedBudgetLimit);
+      if (minRating > 0) result = result.filter(t => (t.rating || 0) >= minRating);
+      if (difficultyFilter !== 'All') result = result.filter(t => t.difficulty === difficultyFilter);
+      if (durationFilter !== 'All') { if (durationFilter === 'Weekend (1-3 days)') result = result.filter(t => t.durationDays <= 3); else if (durationFilter === '1 Week') result = result.filter(t => t.durationDays > 3 && t.durationDays <= 7); else if (durationFilter === '2+ Weeks') result = result.filter(t => t.durationDays > 7); }
+      if (startDate) result = result.filter(t => new Date(t.createdAt) >= new Date(startDate));
+      if (endDate) result = result.filter(t => new Date(t.createdAt) <= new Date(endDate));
+      result.sort((a, b) => { if (sortBy === 'trending') return b.trendingScore - a.trendingScore; if (sortBy === 'popular') return b.forks - a.forks; if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0); if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt); return 0; });
+    }
     return result;
-  }, [publicTrips, debouncedSearch, debouncedDestination, debouncedBudgetLimit, minRating, difficultyFilter, durationFilter, startDate, endDate, sortBy]);
+  }, [publicTrips, activeTab, user, debouncedSearch, debouncedDestination, debouncedBudgetLimit, minRating, difficultyFilter, durationFilter, startDate, endDate, sortBy]);
 
   const handleObserver = useCallback((entries) => { if (entries[0].isIntersecting) setDisplayedCount(prev => Math.min(prev + 8, filteredAndSortedTrips.length)); }, [filteredAndSortedTrips.length]);
   useEffect(() => { const observer = new IntersectionObserver(handleObserver, { rootMargin: '200px' }); if (observerTarget.current) observer.observe(observerTarget.current); return () => observer.disconnect(); }, [handleObserver]);
@@ -57,13 +77,25 @@ const BrowseItineraries = () => {
   return (
     <div className="page-container animate-fade-in">
       <div className="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
-        <div><h1 className="display-6 fw-bold mb-1">Explore Itineraries</h1><p className="text-muted mb-0">Discover, fork, and customize community trips.</p></div>
+        <div><h1 className="display-6 fw-bold mb-1">The Atlas</h1><p className="text-muted mb-0">Discover, fork, and customize community trips.</p></div>
         <select className="form-select" style={{ width: 'auto' }} value={sortBy} onChange={e => setSortBy(e.target.value)}>
           <option value="trending">🔥 Trending</option><option value="popular">🔄 Most Forked</option><option value="rating">⭐ Highest Rated</option><option value="newest">✨ Newest</option>
         </select>
       </div>
 
-      {/* Search & Filters */}
+      <ul className="nav nav-tabs mb-4 border-bottom-0">
+        <li className="nav-item">
+          <button className={`nav-link fw-bold ${activeTab === 'all' ? 'active' : 'text-muted'}`} onClick={() => setActiveTab('all')} style={{ background: activeTab === 'all' ? 'var(--bs-card-bg)' : 'transparent', borderBottom: activeTab === 'all' ? 'none' : '' }}>All Itineraries</button>
+        </li>
+        {user && (
+          <li className="nav-item">
+            <button className={`nav-link fw-bold ${activeTab === 'recent' ? 'active' : 'text-muted'}`} onClick={() => setActiveTab('recent')} style={{ background: activeTab === 'recent' ? 'var(--bs-card-bg)' : 'transparent', borderBottom: activeTab === 'recent' ? 'none' : '' }}>Recently Viewed</button>
+          </li>
+        )}
+      </ul>
+
+      {/* Search & Filters (Only show on All tab) */}
+      {activeTab === 'all' && (
       <div className="card mb-4"><div className="card-body">
         <div className="d-flex gap-3 flex-wrap mb-3">
           <div className="flex-grow-1" style={{ minWidth: 200 }}><input type="text" className="form-control" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or tags..." /></div>
@@ -83,6 +115,7 @@ const BrowseItineraries = () => {
           </div>
         )}
       </div></div>
+      )}
 
       {/* Grid */}
       {isLoading ? (
@@ -90,7 +123,7 @@ const BrowseItineraries = () => {
       ) : filteredAndSortedTrips.length > 0 ? (
         <div className="row g-4">
           {displayedTrips.map(item => (
-            <div key={item.id} className="col-md-6 col-lg-4">
+            <div key={item._id || item.id} className="col-md-6 col-lg-4">
               <div className="card h-100 hover-lift">
                 <div className="position-relative" style={{ height: 200 }}>
                   <img src={item.image} alt={item.title} loading="lazy" className="w-100 h-100" style={{ objectFit: 'cover' }} />
@@ -98,17 +131,21 @@ const BrowseItineraries = () => {
                 </div>
                 <div className="card-body d-flex flex-column">
                   <h6 className="fw-bold mb-1">{item.title}</h6>
-                  <div className="text-muted small d-flex align-items-center gap-1 mb-3"><MapPin size={12} /> {item.destination}</div>
+                  <div className="text-muted small d-flex align-items-center gap-1 mb-2"><MapPin size={12} /> {item.destination}</div>
+                  <p className="small text-muted mb-3" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.4 }}>{item.description || 'A fantastic travel itinerary waiting to be explored.'}</p>
                   <div className="row g-1 mb-3 small">
-                    <div className="col-6 d-flex align-items-center gap-1"><Clock size={13} color="var(--color-secondary)" /> {item.durationDays} Days</div>
-                    <div className="col-6 d-flex align-items-center gap-1"><IndianRupee size={13} color="var(--color-success)" /> {item.budget} {item.currency}</div>
+                    <div className="col-6 d-flex align-items-center gap-1"><Clock size={13} color="var(--color-secondary)" /> {item.durationDays || item.duration} Days</div>
+                    <div className="col-6 d-flex align-items-center gap-1"><CreditCard size={13} color="var(--color-success)" /> {item.budget || item.estimatedBudget} {item.currency}</div>
                     <div className="col-6 d-flex align-items-center gap-1"><Activity size={13} color="var(--color-accent)" /> {item.difficulty}</div>
-                    <div className="col-6 d-flex align-items-center gap-1"><Copy size={13} color="var(--color-primary)" /> {item.forks} Forks</div>
+                    <div className="col-6 d-flex align-items-center gap-1"><Copy size={13} color="var(--color-primary)" /> {item.forks || 0} Forks</div>
                   </div>
                   <div className="d-flex flex-wrap gap-1 mb-3">{item.tags?.slice(0, 3).map(tag => <span key={tag} className="badge bg-secondary bg-opacity-25 small">{tag}</span>)}{item.tags?.length > 3 && <span className="text-muted small">+{item.tags.length - 3}</span>}</div>
-                  <div className="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
-                    <Link to={`/user/${item.author.id}`} className="d-flex align-items-center gap-2 text-decoration-none text-white"><img src={item.author.avatar} alt={item.author.name} className="rounded-circle" style={{ width: 24, height: 24 }} /><span className="small">{item.author.name}</span></Link>
-                    <Link to={`/itinerary/${item.id}`} className="btn btn-primary btn-sm">View</Link>
+                    <div className="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                      <Link to={`/user/${item.author?._id || item.author?.id || 'unknown'}`} className="d-flex align-items-center gap-2 text-decoration-none text-white">
+                        <img src={item.author?.avatar || item.authorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.author?.name || item.authorName || 'User')}`} alt={item.author?.name || item.authorName} className="rounded-circle" style={{ width: 24, height: 24 }} />
+                        <span className="small">{item.author?.name || item.authorName}</span>
+                      </Link>
+                    <Link to={`/itinerary/${item._id || item.id}`} className="btn btn-primary btn-sm">View</Link>
                   </div>
                 </div>
               </div>

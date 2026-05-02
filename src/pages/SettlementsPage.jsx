@@ -13,7 +13,7 @@ const SettlementsPage = () => {
   const { id } = useParams();
   const { trips } = useTrip();
   const { getExpenses, getSettlements, addSettlement, deleteSettlement } = useContext(ExpenseContext);
-  const trip = trips?.find(t => t.id === id);
+  const trip = trips?.find(t => (t._id || t.id) === id);
   const expenses = getExpenses(id);
   const settlements = getSettlements(id);
   const tripMembers = trip?.members || [];
@@ -21,9 +21,12 @@ const SettlementsPage = () => {
   const [defaultTransaction, setDefaultTransaction] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
+  // All hooks BEFORE early returns (Rules of Hooks)
+  const optimalTransactions = useMemo(() => calculateOptimalSettlements(expenses, settlements, tripMembers), [expenses, settlements, tripMembers]);
+
+  // Early return AFTER all hooks
   if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>;
 
-  const optimalTransactions = useMemo(() => calculateOptimalSettlements(expenses, settlements, tripMembers), [expenses, settlements, tripMembers]);
   const handleSettleClick = (transaction = null) => { setDefaultTransaction(transaction); setIsModalOpen(true); };
   const getMemberName = (mId) => tripMembers.find(m => m.id === mId)?.name || 'Unknown';
 
@@ -38,7 +41,7 @@ const SettlementsPage = () => {
               <button className="btn btn-primary btn-sm d-flex align-items-center gap-1" onClick={() => handleSettleClick()}><IndianRupee size={14} /> Record Payment</button>
             </div>
           </div>
-          <TripNav tripId={trip.id} />
+          <TripNav tripId={trip._id || trip.id} />
         </div>
         <div className="card-body">
           {/* Suggested Transactions */}

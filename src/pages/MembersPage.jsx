@@ -8,7 +8,7 @@ import { MEMBER_ROLES } from '../utils/categoryConfig';
 const MembersPage = () => {
   const { id } = useParams();
   const { trips, addMember, removeMember, updateMemberRole } = useTrip();
-  const trip = trips?.find(t => t.id === id);
+  const trip = trips?.find(t => (t._id || t.id) === id);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
@@ -36,36 +36,40 @@ const MembersPage = () => {
               <button className="btn btn-primary btn-sm d-flex align-items-center gap-1" onClick={() => setIsInviteModalOpen(true)}><Plus size={14} /> Invite</button>
             </div>
           </div>
-          <TripNav tripId={trip.id} />
+          <TripNav tripId={trip._id || trip.id} />
         </div>
         <div className="card-body">
           <div className="row g-3">
-            {trip.members?.map(member => (
-              <div key={member.id} className="col-md-6 col-lg-4">
-                <div className="card animate-fade-in">
-                  <div className="card-body d-flex align-items-center justify-content-between">
-                    <div className="d-flex align-items-center gap-3">
-                      <div className="position-relative">
-                        <img src={member.avatar} alt={member.name} className="rounded-circle" style={{ width: 48, height: 48, objectFit: 'cover' }} />
-                        <div className="position-absolute bottom-0 end-0 rounded-circle" style={{ width: 12, height: 12, background: member.online ? 'var(--color-success)' : 'var(--color-text-muted)', border: '2px solid var(--bs-body-bg)' }}></div>
+            {trip.members?.map(member => {
+              const memberId = member._id || member.id;
+              const avatarUrl = member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=1e3a5f&color=38bdf8&size=96`;
+              return (
+                <div key={memberId} className="col-md-6 col-lg-4">
+                  <div className="card animate-fade-in">
+                    <div className="card-body d-flex align-items-center justify-content-between gap-2">
+                      <div className="d-flex align-items-center gap-3" style={{ minWidth: 0 }}>
+                        <div className="position-relative flex-shrink-0">
+                          <img src={avatarUrl} alt={member.name} className="rounded-circle" style={{ width: 48, height: 48, objectFit: 'cover' }} />
+                          <div className="position-absolute bottom-0 end-0 rounded-circle" style={{ width: 12, height: 12, background: member.online ? 'var(--color-success)' : 'var(--color-text-muted)', border: '2px solid var(--bs-body-bg)' }}></div>
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="fw-semibold text-truncate">{member.name}</div>
+                          <span className="badge small" style={{ background: MEMBER_ROLES[member.role]?.bgColor, color: MEMBER_ROLES[member.role]?.color }}>{MEMBER_ROLES[member.role]?.emoji} {MEMBER_ROLES[member.role]?.label || member.role}</span>
+                          <div className="text-muted small text-truncate">{member.email}</div>
+                          <div className="text-muted" style={{ fontSize: '0.7rem' }}>Joined {new Date(member.joinedAt).toLocaleDateString()}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="fw-semibold">{member.name}</div>
-                        <span className="badge small" style={{ background: MEMBER_ROLES[member.role]?.bgColor, color: MEMBER_ROLES[member.role]?.color }}>{MEMBER_ROLES[member.role]?.emoji} {MEMBER_ROLES[member.role]?.label || member.role}</span>
-                        <div className="text-muted small">{member.email}</div>
-                        <div className="text-muted" style={{ fontSize: '0.7rem' }}>Joined {new Date(member.joinedAt).toLocaleDateString()}</div>
+                      <div className="d-flex flex-column gap-1 align-items-end flex-shrink-0">
+                        <select className="form-select form-select-sm" style={{ width: 100 }} value={member.role} onChange={e => updateMemberRole(trip._id || trip.id, memberId, e.target.value)}>
+                          <option value="admin">Admin</option><option value="editor">Editor</option><option value="viewer">Viewer</option>
+                        </select>
+                        <button className="btn btn-link btn-sm text-danger p-0 d-flex align-items-center gap-1" onClick={() => removeMember(trip._id || trip.id, memberId)}><UserMinus size={12} /> Remove</button>
                       </div>
-                    </div>
-                    <div className="d-flex flex-column gap-1 align-items-end">
-                      <select className="form-select form-select-sm" style={{ width: 100 }} value={member.role} onChange={e => updateMemberRole(trip.id, member.id, e.target.value)}>
-                        <option value="admin">Admin</option><option value="editor">Editor</option><option value="viewer">Viewer</option>
-                      </select>
-                      <button className="btn btn-link btn-sm text-danger p-0 d-flex align-items-center gap-1" onClick={() => removeMember(trip.id, member.id)}><UserMinus size={12} /> Remove</button>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

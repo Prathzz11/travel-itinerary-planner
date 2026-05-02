@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { fetchTrips, createTrip as apiCreateTrip, updateTrip as apiUpdateTrip, deleteTrip as apiDeleteTrip, addMember as apiAddMember, removeMember as apiRemoveMember, updateMemberRole as apiUpdateMemberRole } from '../services/tripService';
+import { fetchTrips, createTrip as apiCreateTrip, updateTrip as apiUpdateTrip, deleteTrip as apiDeleteTrip, addMember as apiAddMember, removeMember as apiRemoveMember, updateMemberRole as apiUpdateMemberRole, importTrip as apiImportTrip } from '../services/tripService';
 import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
 
@@ -113,19 +113,32 @@ export const TripProvider = ({ children }) => {
     })));
   }, []);
 
+  const importTrip = useCallback(async (tripData) => {
+    try {
+      const res = await apiImportTrip(tripData);
+      setTrips(prev => [res.data, ...prev]);
+      addNotification('Trip imported successfully!', 'success');
+      return res.data;
+    } catch (err) {
+      addNotification(err.userMessage || 'Failed to import trip', 'error');
+      throw err;
+    }
+  }, [addNotification]);
+
   const value = useMemo(() => ({
     trips,
     tripsLoading,
     tripsError,
     setTrips,
     addTrip,
+    importTrip,
     updateTrip,
     deleteTrip,
     addMember,
     removeMember,
     updateMemberRole,
     toggleMemberPresence
-  }), [trips, tripsLoading, tripsError, addTrip, updateTrip, deleteTrip, addMember, removeMember, updateMemberRole, toggleMemberPresence]);
+  }), [trips, tripsLoading, tripsError, addTrip, importTrip, updateTrip, deleteTrip, addMember, removeMember, updateMemberRole, toggleMemberPresence]);
 
   return (
     <TripContext.Provider value={value}>

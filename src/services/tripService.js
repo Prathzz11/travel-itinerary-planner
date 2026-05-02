@@ -3,6 +3,7 @@ import api from './api';
 export const fetchTrips = () => api.get('/trips');
 export const fetchTripById = (id) => api.get(`/trips/${id}`);
 export const createTrip = (data) => api.post('/trips', data);
+export const importTrip = (data) => api.post('/trips/import', data);
 export const updateTrip = (id, data) => api.put(`/trips/${id}`, data);
 export const deleteTrip = (id) => api.delete(`/trips/${id}`);
 

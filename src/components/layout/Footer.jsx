@@ -28,10 +28,10 @@ const Footer = () => {
           <div className="col-lg-3 col-md-6">
             <h3 className="fs-6 fw-semibold mb-3">Platform</h3>
             <ul className="list-unstyled d-flex flex-column gap-2">
-              <li><Link to="/explore" className="text-muted small text-decoration-none">Explore Trips</Link></li>
-              <li><Link to="/dashboard" className="text-muted small text-decoration-none">Dashboard</Link></li>
-              <li><Link to="/create-trip" className="text-muted small text-decoration-none">Create Trip</Link></li>
-              <li><Link to="/profile" className="text-muted small text-decoration-none">My Profile</Link></li>
+              <li><Link to="/explore" className="text-muted small text-decoration-none">The Atlas</Link></li>
+              <li><Link to="/dashboard" className="text-muted small text-decoration-none">Control Room</Link></li>
+              <li><Link to="/create-trip" className="text-muted small text-decoration-none">Initialize Journey</Link></li>
+              <li><Link to="/profile" className="text-muted small text-decoration-none">Captain's Log</Link></li>
             </ul>
           </div>
 

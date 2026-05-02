@@ -21,10 +21,10 @@ const Home = () => {
 
           <div className="d-flex flex-wrap gap-3 justify-content-center mt-2">
             <Link to="/create-trip" className="btn btn-primary btn-lg d-flex align-items-center gap-2 px-4">
-              <Map size={20} /> Start Planning
+              <Map size={20} /> Initialize Journey
             </Link>
             <Link to="/explore" className="btn btn-outline-light btn-lg d-flex align-items-center gap-2 px-4">
-              <Users size={20} /> Explore Public Trips
+              <Users size={20} /> The Atlas
             </Link>
           </div>
 

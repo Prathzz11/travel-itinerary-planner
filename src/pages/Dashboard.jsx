@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Plus, Calendar, MapPin, Compass, ChevronDown } from 'lucide-react';
+import { Search, Plus, Calendar, MapPin, Compass, Upload } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { useDebounce } from '../hooks/useDebounce';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import TripCard from '../components/trip/TripCard';
 import EmptyState from '../components/ui/EmptyState';
+import ImportTripModal from '../components/trip/ImportTripModal';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const Dashboard = () => {
   const [timeFilter, setTimeFilter] = useLocalStorage('dashboard_timeFilter', 'all');
   const [sortBy, setSortBy] = useLocalStorage('dashboard_sortBy', 'newest');
   const [isLoading, setIsLoading] = useState(true);
+  const [showImportModal, setShowImportModal] = useState(false);
   
   const debouncedSearch = useDebounce(search, 500);
 
@@ -63,14 +65,19 @@ const Dashboard = () => {
       {/* Header */}
       <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
         <div>
-          <h1 className="display-6 fw-bold mb-1">Command Center</h1>
+          <h1 className="display-6 fw-bold mb-1">Control Room</h1>
           <p className="text-muted mb-0">Manage and organize your personal travel universe.</p>
         </div>
-        {trips.length > 0 && (
-          <Link to="/create-trip" className="btn btn-primary d-flex align-items-center gap-2">
-            <Plus size={18} /> New Trip
-          </Link>
-        )}
+        <div className="d-flex gap-2">
+          <button className="btn btn-outline-secondary d-flex align-items-center gap-2" onClick={() => setShowImportModal(true)}>
+            <Upload size={18} /> Import
+          </button>
+          {trips.length > 0 && (
+            <Link to="/create-trip" className="btn btn-primary d-flex align-items-center gap-2">
+              <Plus size={18} /> New Trip
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Stats Row */}
@@ -163,7 +170,7 @@ const Dashboard = () => {
       ) : filteredTrips.length > 0 ? (
         <div className="responsive-grid stagger-children" style={{ gap: 'var(--space-6)', paddingBottom: 'var(--space-8)' }}>
           {filteredTrips.map((trip) => (
-            <div key={trip.id}>
+            <div key={trip._id || trip.id}>
               <TripCard trip={trip} onDelete={deleteTrip} />
             </div>
           ))}
@@ -177,6 +184,8 @@ const Dashboard = () => {
           onAction={() => { setSearch(''); setTimeFilter('all'); }}
         />
       )}
+
+      {showImportModal && <ImportTripModal onClose={() => setShowImportModal(false)} />}
     </div>
   );
 };

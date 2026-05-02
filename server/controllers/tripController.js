@@ -211,4 +211,77 @@ const updateMemberRole = async (req, res) => {
   }
 };
 
-module.exports = { getTrips, createTrip, getTripById, updateTrip, deleteTrip, addMember, removeMember, updateMemberRole };
+// @desc    Import a new trip and itinerary
+// @route   POST /api/trips/import
+// @access  Protected
+const importTrip = async (req, res) => {
+  try {
+    const { title, destination, startDate, endDate, budget, currency, days, publishToExplore } = req.body;
+    const Itinerary = require('../models/Itinerary'); // Import here to avoid circular dep issues if any
+
+    // 1. Create the Trip
+    const trip = await Trip.create({
+      title,
+      destination,
+      startDate,
+      endDate,
+      budget: budget || 0,
+      currency: currency || 'INR',
+      visibility: 'private',
+      status: 'planning',
+      owner: req.user._id,
+      members: [{
+        user: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        avatar: req.user.avatar,
+        role: 'admin',
+        joinedAt: new Date(),
+        online: false
+      }],
+      activityFeed: [{
+        user: req.user.name,
+        action: 'imported a trip',
+        timestamp: new Date()
+      }]
+    });
+
+    // 2. Create the associated Itinerary with the parsed days/activities
+    if (days && Array.isArray(days)) {
+      await Itinerary.create({
+        trip: trip._id,
+        days: days
+      });
+      
+      // 3. Automatically publish as a public Template for the Explore page (if requested)
+      if (publishToExplore !== false) {
+        const Template = require('../models/Template');
+        try {
+          await Template.create({
+            title: title || 'Imported Itinerary',
+            destination: destination || 'Unknown',
+            description: 'This itinerary was imported and automatically published to the community.',
+            duration: days.length || 1,
+            estimatedBudget: budget || 0,
+            currency: currency || 'INR',
+            author: req.user._id,
+            authorName: req.user.name,
+            authorAvatar: req.user.avatar,
+            isPublic: true,
+            days: days
+          });
+        } catch (templateError) {
+          console.error('Failed to auto-publish template during import:', templateError);
+          // We don't fail the entire import if template creation fails
+        }
+      }
+    }
+
+    res.status(201).json(trip);
+  } catch (error) {
+    console.error('Import trip error:', error);
+    res.status(500).json({ message: 'Server error importing trip' });
+  }
+};
+
+module.exports = { getTrips, createTrip, getTripById, updateTrip, deleteTrip, addMember, removeMember, updateMemberRole, importTrip };

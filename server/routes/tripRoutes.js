@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getTrips, createTrip, getTripById, updateTrip, deleteTrip,
-  addMember, removeMember, updateMemberRole
+  addMember, removeMember, updateMemberRole, importTrip
 } = require('../controllers/tripController');
 const { getItinerary, updateItinerary } = require('../controllers/itineraryController');
 const { getExpenses, createExpense, updateExpense, deleteExpense } = require('../controllers/expenseController');
@@ -15,6 +15,7 @@ router.use(protect);
 // Trips
 router.get('/', getTrips);
 router.post('/', createTrip);
+router.post('/import', importTrip);
 router.get('/:id', getTripById);
 router.put('/:id', updateTrip);
 router.delete('/:id', deleteTrip);
