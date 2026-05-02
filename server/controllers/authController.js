@@ -93,7 +93,7 @@ const login = async (req, res) => {
 // @access  Protected
 const getMe = async (req, res) => {
   try {
-    const user = req.user;
+    const user = await User.findById(req.user._id).populate('recentlyViewed');
     res.json({
       user: {
         id: user._id,
@@ -103,6 +103,7 @@ const getMe = async (req, res) => {
         avatar: user.avatar,
         role: user.role,
         preferences: user.preferences,
+        recentlyViewed: user.recentlyViewed,
         createdAt: user.createdAt
       }
     });
@@ -126,7 +127,7 @@ const updateMe = async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
       new: true,
       runValidators: true
-    });
+    }).populate('recentlyViewed');
 
     res.json({
       user: {
@@ -137,6 +138,7 @@ const updateMe = async (req, res) => {
         avatar: user.avatar,
         role: user.role,
         preferences: user.preferences,
+        recentlyViewed: user.recentlyViewed,
         createdAt: user.createdAt
       }
     });
@@ -145,4 +147,37 @@ const updateMe = async (req, res) => {
   }
 };
 
-module.exports = { signup, login, getMe, updateMe };
+// @desc    Log a template as recently viewed
+// @route   POST /api/auth/me/viewed/:id
+// @access  Protected
+const logViewedTemplate = async (req, res) => {
+  try {
+    const templateId = req.params.id;
+    const user = await User.findById(req.user._id);
+    
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Remove if already exists to push to top
+    user.recentlyViewed = user.recentlyViewed.filter(id => id.toString() !== templateId);
+    
+    // Add to front
+    user.recentlyViewed.unshift(templateId);
+    
+    // Cap at 20 items
+    if (user.recentlyViewed.length > 20) {
+      user.recentlyViewed = user.recentlyViewed.slice(0, 20);
+    }
+    
+    await user.save();
+    
+    // Return populated array
+    const populatedUser = await User.findById(req.user._id).populate('recentlyViewed');
+
+    res.json({ recentlyViewed: populatedUser.recentlyViewed });
+  } catch (error) {
+    console.error('Log viewed template error:', error);
+    res.status(500).json({ message: 'Server error logging view' });
+  }
+};
+
+module.exports = { signup, login, getMe, updateMe, logViewedTemplate };

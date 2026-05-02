@@ -39,7 +39,11 @@ const userSchema = new mongoose.Schema({
   preferences: {
     currency: { type: String, default: 'INR' },
     language: { type: String, default: 'en' }
-  }
+  },
+  recentlyViewed: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Template'
+  }]
 }, { timestamps: true });
 
 // Hash password before saving

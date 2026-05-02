@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LogOut, Menu, User, Settings as SettingsIcon } from 'lucide-react';
+import { LogOut, Menu, User, Settings as SettingsIcon, Upload } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import Footer from './Footer';
+import ImportTripModal from '../trip/ImportTripModal';
 
 const Layout = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const dropdownRef = useRef(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Close dropdown on route change
   useEffect(() => {
@@ -69,15 +71,20 @@ const Layout = () => {
             <ul className="navbar-nav ms-auto align-items-lg-center gap-lg-2">
               <li className="nav-item">
                 <Link className={`nav-link ${isActive('/explore') ? 'active fw-semibold' : ''}`} to="/explore">
-                  Explore
+                  The Atlas
                 </Link>
               </li>
 
               {user ? (
                 <>
                   <li className="nav-item">
+                    <button className="btn btn-link nav-link d-flex align-items-center gap-2" onClick={() => setShowImportModal(true)}>
+                      <Upload size={16} /> Import
+                    </button>
+                  </li>
+                  <li className="nav-item">
                     <Link className={`nav-link ${isActive('/dashboard') ? 'active fw-semibold' : ''}`} to="/dashboard">
-                      Dashboard
+                      Control Room
                     </Link>
                   </li>
 
@@ -107,7 +114,7 @@ const Layout = () => {
                       <li><hr className="dropdown-divider" style={{ borderColor: 'var(--color-border)' }} /></li>
                       <li>
                         <Link className="dropdown-item d-flex align-items-center gap-2" to="/profile" onClick={() => setIsDropdownOpen(false)}>
-                          <User size={16} /> My Profile
+                          <User size={16} /> Captain's Log
                         </Link>
                       </li>
                       <li>
@@ -143,6 +150,9 @@ const Layout = () => {
         </div>
         <Footer />
       </main>
+      
+      {/* Global Import Modal */}
+      {showImportModal && <ImportTripModal onClose={() => setShowImportModal(false)} />}
     </>
   );
 };

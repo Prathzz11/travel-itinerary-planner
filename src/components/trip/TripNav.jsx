@@ -18,7 +18,7 @@ const TripNav = ({ tripId }) => {
     <div>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={() => navigate('/dashboard')}>
-          <ArrowLeft size={16} /> Back to Dashboard
+          <ArrowLeft size={16} /> Back to Control Room
         </button>
         <button className="btn btn-link text-decoration-none d-flex align-items-center gap-1 no-print" style={{ color: 'var(--color-primary)', fontWeight: 600 }} onClick={handleShare}>
           <Share2 size={16} /> Share Trip
@@ -27,11 +27,11 @@ const TripNav = ({ tripId }) => {
 
       <ul className="nav nav-tabs mb-3 no-print">
         <li className="nav-item"><NavLink to={`/trip/${tripId}`} end className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Info size={16} /> Overview</NavLink></li>
-        <li className="nav-item"><NavLink to={`/trip/${tripId}/itinerary`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Map size={16} /> Itinerary</NavLink></li>
-        <li className="nav-item"><NavLink to={`/trip/${tripId}/budget`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><IndianRupee size={16} /> Budget</NavLink></li>
+        <li className="nav-item"><NavLink to={`/trip/${tripId}/itinerary`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Map size={16} /> Flight Plan</NavLink></li>
+        <li className="nav-item"><NavLink to={`/trip/${tripId}/budget`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><IndianRupee size={16} /> Resource Allocation</NavLink></li>
         <li className="nav-item"><NavLink to={`/trip/${tripId}/settlements`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Handshake size={16} /> Settle Up</NavLink></li>
-        <li className="nav-item"><NavLink to={`/trip/${tripId}/bookings`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Ticket size={16} /> Bookings</NavLink></li>
-        <li className="nav-item"><NavLink to={`/trip/${tripId}/members`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Users size={16} /> Members</NavLink></li>
+        <li className="nav-item"><NavLink to={`/trip/${tripId}/bookings`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Ticket size={16} /> Logistics</NavLink></li>
+        <li className="nav-item"><NavLink to={`/trip/${tripId}/members`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}><Users size={16} /> The Crew</NavLink></li>
       </ul>
     </div>
   );

@@ -67,7 +67,8 @@ api.interceptors.response.use(
           break;
         case 401:
           // Check if error is 401 Unauthorized
-          if (!originalRequest._retry) {
+          // DO NOT trigger logout flow if the 401 is from the login or signup route itself!
+          if (!originalRequest.url.includes('/auth/login') && !originalRequest.url.includes('/auth/signup') && !originalRequest._retry) {
             originalRequest._retry = true;
             logger.warn("Unauthorized access - clearing tokens and logging out.");
             localStorage.removeItem('token');
@@ -75,7 +76,9 @@ api.interceptors.response.use(
             // Dispatch a custom event to notify AuthContext to log user out
             window.dispatchEvent(new Event('auth:unauthorized'));
           }
-          userMessage = 'Your session has expired. Please log in again.';
+          userMessage = originalRequest.url.includes('/auth/login') 
+            ? error.response.data?.message || 'Invalid email or password.' 
+            : 'Your session has expired. Please log in again.';
           break;
         case 403:
           userMessage = 'You do not have permission to perform this action.';

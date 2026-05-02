@@ -3,9 +3,9 @@ import { Briefcase, Code, Map, Users } from 'lucide-react';
 
 const Careers = () => {
   const openPositions = [
-    { title: 'Senior Frontend Engineer', department: 'Engineering', location: 'Remote', icon: Code },
-    { title: 'Product Designer', department: 'Design', location: 'New York / Remote', icon: Map },
-    { title: 'Community Manager', department: 'Marketing', location: 'Remote', icon: Users },
+    { title: 'Senior Frontend Engineer', department: 'Engineering', location: 'Remote', icon: Code, assignedTo: 'Pratham Shah' },
+    { title: 'Product Designer', department: 'Design', location: 'New York / Remote', icon: Map, assignedTo: 'Trish Shah' },
+    { title: 'Community Manager', department: 'Marketing', location: 'Remote', icon: Users, assignedTo: 'Vihaan Raut' },
   ];
 
   return (
@@ -22,7 +22,7 @@ const Careers = () => {
             At TravelSync, we are a passionate team of travelers, designers, and engineers dedicated to making trip planning a collaborative and beautiful experience. We value creativity, autonomy, and a love for exploration.
           </p>
 
-          <h2 className="fs-4 mb-3">Open Positions</h2>
+          <h2 className="fs-4 mb-3">Our Team</h2>
           
           <div className="d-flex flex-column gap-3 mb-5">
             {openPositions.map((job, index) => {
@@ -43,15 +43,18 @@ const Careers = () => {
                         </div>
                       </div>
                     </div>
-                    <button className="btn btn-outline-primary btn-sm">Apply</button>
+                    <div className="d-flex align-items-center gap-2">
+                      <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(job.assignedTo)}&background=random&color=fff`} alt={job.assignedTo} className="rounded-circle border border-secondary" style={{ width: 28, height: 28 }} />
+                      <span className="small fw-semibold text-white">{job.assignedTo}</span>
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
           
-          <div className="text-center text-muted small">
-            Don't see a perfect fit? Send your resume to <a href="mailto:careers@travelsync.app" style={{ color: 'var(--color-primary)' }}>careers@travelsync.app</a>
+          <div className="text-center text-muted small mt-2">
+            Want to join the team? Send your resume to <a href="mailto:careers@travelsync.app" style={{ color: 'var(--color-primary)' }}>careers@travelsync.app</a>
           </div>
         </div>
       </div>

@@ -15,3 +15,7 @@ export const getMe = async () => {
 export const updateMe = async (data) => {
   return api.put('/auth/me', data);
 };
+
+export const logViewedTemplate = async (id) => {
+  return api.post(`/auth/me/viewed/${id}`);
+};

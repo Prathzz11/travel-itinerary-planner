@@ -12,7 +12,7 @@ const CreateTrip = () => {
   const { user } = useAuth();
   const { addNotification } = useNotification();
   const [step, setStep] = useState(1);
-  const pendingNavigateId = useRef(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validate = useCallback((vals) => {
     const errs = {};
@@ -35,30 +35,35 @@ const CreateTrip = () => {
   const nextStep = () => setStep(s => Math.min(s + 1, 4));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
 
-  useEffect(() => {
-    if (pendingNavigateId.current) {
-      const found = trips?.find(t => t.id === pendingNavigateId.current);
-      if (found) { const id = pendingNavigateId.current; pendingNavigateId.current = null; navigate(`/trip/${id}`, { state: { autoEdit: true } }); }
-    }
-  }, [trips, navigate]);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (step < 4) { nextStep(); return; }
-    const newId = Math.random().toString(36).substr(2, 9);
-    const creator = user
-      ? { id: user.id || 'm_creator', name: user.name, email: user.email, role: 'admin', joinedAt: new Date().toISOString(), avatar: user.avatar || `https://i.pravatar.cc/150?u=${user.email}`, online: true }
-      : { id: 'm_creator', name: 'You', email: '', role: 'admin', joinedAt: new Date().toISOString(), avatar: 'https://i.pravatar.cc/150?u=creator', online: true };
-    const newTrip = {
-      id: newId, ...values, budget: Number(values.budget), spent: 0,
-      image: `https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=600&q=80`,
-      members: [creator], status: 'planning', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-      activitiesCount: 0, activityFeed: [{ id: `af_${Date.now()}`, user: creator.name, action: 'created the trip', timestamp: new Date().toISOString() }]
-    };
-    pendingNavigateId.current = newId;
-    addTrip(newTrip);
-    clearDraft();
-    addNotification(`"${newTrip.title}" created! Let's plan your adventure! 🎉`, 'success');
+    
+    setIsSubmitting(true);
+    
+    try {
+      const creator = user
+        ? { id: user.id || 'm_creator', name: user.name, email: user.email, role: 'admin', joinedAt: new Date().toISOString(), avatar: user.avatar || `https://i.pravatar.cc/150?u=${user.email}`, online: true }
+        : { id: 'm_creator', name: 'You', email: '', role: 'admin', joinedAt: new Date().toISOString(), avatar: 'https://i.pravatar.cc/150?u=creator', online: true };
+      
+      const newTrip = {
+        ...values, budget: Number(values.budget), spent: 0,
+        image: `https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=600&q=80`,
+        members: [creator], status: 'planning',
+        activitiesCount: 0, activityFeed: [{ id: `af_${Date.now()}`, user: creator.name, action: 'created the trip', timestamp: new Date().toISOString() }]
+      };
+      
+      // addTrip uses the backend API which returns the actual created object (with the real _id)
+      const createdTrip = await addTrip(newTrip);
+      clearDraft();
+      
+      const realId = createdTrip._id || createdTrip.id;
+      navigate(`/trip/${realId}`, { state: { autoEdit: true } });
+    } catch (err) {
+      console.error("Failed to create trip:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isStepValid = () => {
@@ -179,11 +184,15 @@ const CreateTrip = () => {
 
               {/* Navigation */}
               <div className="d-flex justify-content-between mt-auto pt-4 border-top">
-                <button type="button" className="btn btn-outline-secondary d-flex align-items-center gap-1" onClick={prevStep} disabled={step === 1}>
+                <button type="button" className="btn btn-outline-secondary d-flex align-items-center gap-1" onClick={prevStep} disabled={step === 1 || isSubmitting}>
                   <ChevronLeft size={18} /> Back
                 </button>
-                <button type="submit" className="btn btn-primary d-flex align-items-center gap-1" disabled={!isStepValid()}>
-                  {step === 4 ? 'Create Trip' : 'Next'} {step < 4 && <ChevronRight size={18} />}
+                <button type="submit" className="btn btn-primary d-flex align-items-center gap-1" disabled={!isStepValid() || isSubmitting}>
+                  {isSubmitting ? (
+                    <><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...</>
+                  ) : (
+                    <>{step === 4 ? 'Create Trip' : 'Next'} {step < 4 && <ChevronRight size={18} />}</>
+                  )}
                 </button>
               </div>
             </form>

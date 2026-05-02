@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { login as apiLogin, signup as apiSignup, getMe } from '../services/authService';
+import { login as apiLogin, signup as apiSignup, getMe as apiGetMe, updateMe as apiUpdateMe, logViewedTemplate as apiLogViewedTemplate } from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (token) {
         try {
-          const response = await getMe();
+          const response = await apiGetMe();
           setUser(response.data.user);
         } catch (error) {
           console.error("Auto-login failed:", error);
@@ -85,11 +85,33 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }, []);
 
-  const updateUser = useCallback((updates) => {
-    setUser(prev => {
-      if (!prev) return null;
-      return { ...prev, ...updates };
-    });
+  const updateUser = useCallback(async (updates) => {
+    try {
+      // Optimitically update locally
+      setUser(prev => {
+        if (!prev) return null;
+        return { ...prev, ...updates };
+      });
+      // Persist to backend
+      const response = await apiUpdateMe(updates);
+      // Ensure local state exactly matches backend response
+      setUser(response.data.user);
+    } catch (error) {
+      console.error('Failed to update user profile', error);
+      throw error;
+    }
+  }, []);
+
+  const logView = useCallback(async (templateId) => {
+    try {
+      const response = await apiLogViewedTemplate(templateId);
+      setUser(prev => {
+        if (!prev) return prev;
+        return { ...prev, recentlyViewed: response.data.recentlyViewed };
+      });
+    } catch (error) {
+      console.error('Failed to log viewed template', error);
+    }
   }, []);
 
   const value = useMemo(() => ({
@@ -99,8 +121,9 @@ export const AuthProvider = ({ children }) => {
     signup, 
     loading, 
     authError, 
-    updateUser
-  }), [user, login, logout, signup, loading, authError, updateUser]);
+    updateUser,
+    logView
+  }), [user, login, logout, signup, loading, authError, updateUser, logView]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom';
 import { Star, MapPin, Copy, Clock, IndianRupee, Activity, Edit3 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { ExploreContext } from '../contexts/ExploreContext';
+import { TripContext } from '../contexts/TripContext';
 
 const Profile = () => {
   const { user } = useAuth();
   const { getTripsByUser } = useContext(ExploreContext);
-  const myTrips = getTripsByUser('user1') || [];
+  const { trips } = useContext(TripContext);
+  
+  const myTrips = getTripsByUser(user?.id || user?._id) || [];
   const totalForks = myTrips.reduce((sum, trip) => sum + trip.forks, 0);
   const avgRating = myTrips.length > 0 ? (myTrips.reduce((sum, trip) => sum + parseFloat(trip.rating), 0) / myTrips.length).toFixed(1) : '0.0';
 
@@ -25,7 +28,7 @@ const Profile = () => {
           
           <div className="d-flex justify-content-center gap-4 p-3 rounded-3 mx-auto" style={{ background: 'rgba(0,0,0,0.2)', maxWidth: 400 }}>
             <div className="text-center flex-fill">
-              <div className="fs-4 fw-bold" style={{ color: 'var(--color-primary)' }}>{myTrips.length}</div>
+              <div className="fs-4 fw-bold" style={{ color: 'var(--color-primary)' }}>{trips?.length || 0}</div>
               <div className="text-muted small text-uppercase">Trips</div>
             </div>
             <div className="vr"></div>
@@ -42,7 +45,7 @@ const Profile = () => {
         </div>
       </div>
 
-      <h2 className="fs-3 mb-4">My Public Itineraries</h2>
+      <h2 className="fs-3 mb-4">Public Logs</h2>
       
       {myTrips.length > 0 ? (
         <div className="row g-4 stagger-children">

@@ -20,7 +20,7 @@ const BudgetPage = () => {
   const { user } = useAuth();
   const { getExpenses, addExpense, updateExpense, deleteExpense } = useContext(ExpenseContext);
   
-  const trip = trips?.find(t => t.id === id);
+  const trip = trips?.find(t => (t._id || t.id) === id);
   const expenses = getExpenses(id);
   const tripMembers = trip?.members || [];
   
@@ -35,13 +35,7 @@ const BudgetPage = () => {
   const [budgetInput, setBudgetInput] = useState(trip?.budget || 0);
   const [confirmDeleteExpenseId, setConfirmDeleteExpenseId] = useState(null);
 
-  if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>;
-
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const budgetLimit = trip.budget || 0;
-  const isOverBudget = totalExpenses > budgetLimit;
-  const percentUsed = budgetLimit > 0 ? Math.min((totalExpenses / budgetLimit) * 100, 100) : 0;
-  
+  // All hooks BEFORE early returns (Rules of Hooks)
   const categoryData = useMemo(() => {
     const data = {};
     expenses.forEach(exp => { data[exp.category] = (data[exp.category] || 0) + exp.amount; });
@@ -49,10 +43,6 @@ const BudgetPage = () => {
   }, [expenses]);
 
   const highestExpense = useMemo(() => expenses.length === 0 ? null : expenses.reduce((max, exp) => exp.amount > max.amount ? exp : max, expenses[0]), [expenses]);
-  const avgCostPerPerson = tripMembers.length > 0 ? (totalExpenses / tripMembers.length) : 0;
-  const assumedBudgetPerPerson = tripMembers.length > 0 ? (budgetLimit / tripMembers.length) : 0;
-  const tripDuration = trip.startDate && trip.endDate ? Math.max(1, Math.ceil(Math.abs(new Date(trip.endDate) - new Date(trip.startDate)) / (1000 * 60 * 60 * 24))) : 1;
-  const dailyBurnRate = totalExpenses / tripDuration;
 
   const balances = useMemo(() => {
     const b = {};
@@ -68,6 +58,18 @@ const BudgetPage = () => {
     result.sort((a, b) => { if (sortBy === 'date-desc') return new Date(b.date) - new Date(a.date); if (sortBy === 'date-asc') return new Date(a.date) - new Date(b.date); if (sortBy === 'amount-desc') return b.amount - a.amount; if (sortBy === 'amount-asc') return a.amount - b.amount; return 0; });
     return result;
   }, [expenses, debouncedSearch, categoryFilter, sortBy]);
+
+  // Early return AFTER all hooks
+  if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>;
+
+  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const budgetLimit = trip.budget || 0;
+  const isOverBudget = totalExpenses > budgetLimit;
+  const percentUsed = budgetLimit > 0 ? Math.min((totalExpenses / budgetLimit) * 100, 100) : 0;
+  const avgCostPerPerson = tripMembers.length > 0 ? (totalExpenses / tripMembers.length) : 0;
+  const assumedBudgetPerPerson = tripMembers.length > 0 ? (budgetLimit / tripMembers.length) : 0;
+  const tripDuration = trip.startDate && trip.endDate ? Math.max(1, Math.ceil(Math.abs(new Date(trip.endDate) - new Date(trip.startDate)) / (1000 * 60 * 60 * 24))) : 1;
+  const dailyBurnRate = totalExpenses / tripDuration;
 
   const handleSaveExpense = (data) => { if (editingExpense) updateExpense(id, editingExpense.id, data); else addExpense(id, data); setIsModalOpen(false); setEditingExpense(null); };
   const handleSaveBudget = () => { updateTrip(id, { budget: Number(budgetInput) }); setIsEditingBudget(false); };
@@ -92,7 +94,7 @@ const BudgetPage = () => {
               <button className="btn btn-success btn-sm d-flex align-items-center gap-1" onClick={() => { setEditingExpense(null); setIsModalOpen(true); }}><Plus size={14} /> Add Expense</button>
             </div>
           </div>
-          <TripNav tripId={trip.id} />
+          <TripNav tripId={trip._id || trip.id} />
         </div>
 
         <div className="card-body">

@@ -38,7 +38,7 @@ const TripCard = ({ trip, onDelete }) => {
 
           {/* Hover Actions */}
           <div className="trip-card-actions position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center gap-2" style={{ background: 'rgba(0,0,0,0.4)', opacity: 0, transition: 'opacity 0.2s' }}>
-            <button className="btn btn-primary btn-sm rounded-circle p-2" onClick={(e) => { e.preventDefault(); navigate(`/trip/${trip.id}`); }} aria-label="Open trip"><Edit2 size={16} /></button>
+            <button className="btn btn-primary btn-sm rounded-circle p-2" onClick={(e) => { e.preventDefault(); navigate(`/trip/${trip._id || trip.id}`); }} aria-label="Open trip"><Edit2 size={16} /></button>
             <button className="btn btn-danger btn-sm rounded-circle p-2" onClick={handleDelete} aria-label="Delete trip"><Trash2 size={16} /></button>
           </div>
         </div>
@@ -53,9 +53,11 @@ const TripCard = ({ trip, onDelete }) => {
           {/* Members */}
           <div className="d-flex justify-content-between align-items-center">
             <div className="d-flex align-items-center">
-              {trip.members?.slice(0, 3).map((m, i) => (
-                <img key={m.id} src={m.avatar} alt={m.name} title={m.name} className="rounded-circle" style={{ width: 24, height: 24, objectFit: 'cover', border: '2px solid var(--bs-body-bg)', marginLeft: i > 0 ? -8 : 0, zIndex: 10 - i }} />
-              ))}
+              {trip.members?.slice(0, 3).map((m, i) => {
+                const mId = m._id || m.id || i;
+                const avatarSrc = m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name || 'U')}&background=1e3a5f&color=38bdf8&size=48`;
+                return <img key={mId} src={avatarSrc} alt={m.name} title={m.name} className="rounded-circle" style={{ width: 24, height: 24, objectFit: 'cover', border: '2px solid var(--bs-body-bg)', marginLeft: i > 0 ? -8 : 0, zIndex: 10 - i }} />;
+              })}
               {trip.members?.length > 3 && <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 24, height: 24, marginLeft: -8, zIndex: 7, background: 'var(--color-surface)', fontSize: '0.65rem', fontWeight: 'bold', border: '2px solid var(--bs-body-bg)' }}>+{trip.members.length - 3}</div>}
             </div>
             {budgetPerPerson > 0 && <div className="text-muted d-flex align-items-center gap-1" style={{ fontSize: '0.78rem' }}><Users size={11} /> {formatCurrency(budgetPerPerson)}/ea</div>}
@@ -75,12 +77,12 @@ const TripCard = ({ trip, onDelete }) => {
           )}
         </div>
 
-        <Link to={`/trip/${trip.id}`} className="stretched-link" />
+        <Link to={`/trip/${trip._id || trip.id}`} className="stretched-link" />
 
         <style>{`.card:hover .trip-card-actions { opacity: 1 !important; }`}</style>
       </div>
 
-      <ConfirmDialog isOpen={confirmOpen} title={`Delete "${trip.title}"?`} message="This action is permanent and cannot be undone." confirmLabel="Delete Trip" onConfirm={() => { setConfirmOpen(false); if (onDelete) onDelete(trip.id); }} onCancel={() => setConfirmOpen(false)} />
+      <ConfirmDialog isOpen={confirmOpen} title={`Delete "${trip.title}"?`} message="This action is permanent and cannot be undone." confirmLabel="Delete Trip" onConfirm={() => { setConfirmOpen(false); if (onDelete) onDelete(trip._id || trip.id); }} onCancel={() => setConfirmOpen(false)} />
     </>
   );
 };
