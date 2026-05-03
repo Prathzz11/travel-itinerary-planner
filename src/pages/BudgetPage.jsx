@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo } from 'react';
+import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { IndianRupee, Plus, List, Filter, ChevronDown, ChevronUp, Edit2, Trash2, Tag, Calendar, User, AlignLeft, Search, AlertTriangle, Download, Edit3, Check, Users, Printer } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
@@ -16,9 +16,9 @@ const CATEGORY_COLORS = { 'Accommodation': '#8b5cf6', 'Food': '#ec4899', 'Transp
 
 const BudgetPage = () => {
   const { id } = useParams();
-  const { trips, updateTrip } = useTrip();
+  const { trips, updateTrip, refreshTrips } = useTrip();
   const { user } = useAuth();
-  const { getExpenses, addExpense, updateExpense, deleteExpense } = useContext(ExpenseContext);
+  const { getExpenses, loadExpenses, addExpense, updateExpense, deleteExpense } = useContext(ExpenseContext);
   
   const trip = trips?.find(t => (t._id || t.id) === id);
   const expenses = getExpenses(id);
@@ -35,6 +35,12 @@ const BudgetPage = () => {
   const [budgetInput, setBudgetInput] = useState(trip?.budget || 0);
   const [confirmDeleteExpenseId, setConfirmDeleteExpenseId] = useState(null);
 
+  useEffect(() => {
+    if (id) {
+      loadExpenses(id).then(() => refreshTrips());
+    }
+  }, [id, loadExpenses, refreshTrips]);
+
   // All hooks BEFORE early returns (Rules of Hooks)
   const categoryData = useMemo(() => {
     const data = {};
@@ -46,8 +52,15 @@ const BudgetPage = () => {
 
   const balances = useMemo(() => {
     const b = {};
-    tripMembers.forEach(m => b[m.id] = { name: m.name, paid: 0, owes: 0 });
-    expenses.forEach(exp => { if (b[exp.paidBy]) b[exp.paidBy].paid += exp.amount; exp.splits.forEach(split => { if (b[split.memberId]) b[split.memberId].owes += split.amountOwed; }); });
+    tripMembers.forEach(m => b[m._id || m.id] = { name: m.name, paid: 0, owes: 0 });
+    expenses.forEach(exp => {
+      const payerId = exp.paidBy?.userId?.toString();
+      if (payerId && b[payerId]) b[payerId].paid += exp.amount;
+      (exp.splitAmong || []).forEach(split => {
+        const splitId = split.userId?.toString();
+        if (splitId && b[splitId]) b[splitId].owes += (split.share || 0);
+      });
+    });
     return Object.values(b).map(member => ({ ...member, net: member.paid - member.owes })).sort((a, b) => b.net - a.net);
   }, [expenses, tripMembers]);
 
@@ -73,7 +86,7 @@ const BudgetPage = () => {
 
   const handleSaveExpense = (data) => { if (editingExpense) updateExpense(id, editingExpense.id, data); else addExpense(id, data); setIsModalOpen(false); setEditingExpense(null); };
   const handleSaveBudget = () => { updateTrip(id, { budget: Number(budgetInput) }); setIsEditingBudget(false); };
-  const getMemberName = (mId) => tripMembers.find(m => m.id === mId)?.name || 'Unknown';
+  const getMemberName = (mId) => tripMembers.find(m => (m._id || m.id) === mId)?.name || 'Unknown';
 
   const exportCSV = () => {
     const headers = ['Date', 'Description', 'Category', 'Amount', 'Currency', 'Paid By', 'Split Type'];
@@ -144,9 +157,9 @@ const BudgetPage = () => {
               <div className="card h-100"><div className="card-body">
                 <h6 className="mb-3">Quick Statistics</h6>
                 <div className="d-flex flex-column gap-3">
-                  <div className="d-flex justify-content-between border-bottom pb-2"><span className="text-muted small">Avg/Person</span><span className="fw-semibold">${avgCostPerPerson.toFixed(2)}</span></div>
-                  <div className="d-flex justify-content-between border-bottom pb-2"><span className="text-muted small">Highest</span><span className="fw-semibold">{highestExpense ? `$${highestExpense.amount.toFixed(2)}` : 'N/A'}</span></div>
-                  <div className="d-flex justify-content-between"><span className="text-muted small">Daily Rate</span><span className="fw-semibold">${dailyBurnRate.toFixed(2)}/day</span></div>
+                  <div className="d-flex justify-content-between border-bottom pb-2"><span className="text-muted small">Avg/Person</span><span className="fw-semibold">₹{avgCostPerPerson.toFixed(2)}</span></div>
+                  <div className="d-flex justify-content-between border-bottom pb-2"><span className="text-muted small">Highest</span><span className="fw-semibold">{highestExpense ? `₹${highestExpense.amount.toFixed(2)}` : 'N/A'}</span></div>
+                  <div className="d-flex justify-content-between"><span className="text-muted small">Daily Rate</span><span className="fw-semibold">₹{dailyBurnRate.toFixed(2)}/day</span></div>
                 </div>
               </div></div>
             </div>
@@ -177,22 +190,23 @@ const BudgetPage = () => {
 
           <div className="d-flex flex-column gap-2">
             {processedExpenses.map(exp => {
-              const isExpanded = expandedId === exp.id;
+              const expId = exp._id || exp.id;
+              const isExpanded = expandedId === expId;
               return (
-                <div key={exp.id} className="card animate-fade-in" onClick={() => setExpandedId(prev => prev === exp.id ? null : exp.id)} style={{ cursor: 'pointer', borderColor: isExpanded ? 'var(--color-primary)' : undefined }}>
+                <div key={expId} className="card animate-fade-in" onClick={() => setExpandedId(prev => prev === expId ? null : expId)} style={{ cursor: 'pointer', borderColor: isExpanded ? 'var(--color-primary)' : undefined }}>
                   <div className="card-body py-3 d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center gap-3">
                       <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 40, height: 40, background: EXPENSE_CATEGORIES[exp.category]?.bgColor || 'rgba(100,116,139,0.2)', fontSize: '1.2rem' }}>{EXPENSE_CATEGORIES[exp.category]?.emoji || '📌'}</div>
-                      <div><div className="fw-bold">{exp.description}</div><div className="text-muted small d-flex align-items-center gap-1"><Calendar size={12} /> {new Date(exp.date).toLocaleDateString()} • Paid by <strong>{getMemberName(exp.paidBy)}</strong></div></div>
+                      <div><div className="fw-bold">{exp.description}</div><div className="text-muted small d-flex align-items-center gap-1"><Calendar size={12} /> {new Date(exp.date).toLocaleDateString()} • Paid by <strong>{exp.paidBy?.name || 'Unknown'}</strong></div></div>
                     </div>
-                    <div className="d-flex align-items-center gap-3"><span className="fw-bold fs-5">${exp.amount.toFixed(2)}</span>{isExpanded ? <ChevronUp size={18} className="text-muted" /> : <ChevronDown size={18} className="text-muted" />}</div>
+                    <div className="d-flex align-items-center gap-3"><span className="fw-bold fs-5">₹{exp.amount.toFixed(2)}</span>{isExpanded ? <ChevronUp size={18} className="text-muted" /> : <ChevronDown size={18} className="text-muted" />}</div>
                   </div>
                   {isExpanded && (
                     <div className="card-footer border-top animate-fade-in">
                       <div className="d-flex gap-4 flex-wrap">
-                        <div className="flex-grow-1"><h6 className="text-muted small d-flex align-items-center gap-1 mb-2"><Users size={14} /> Split ({exp.splitType})</h6>{exp.splits.filter(s => s.amountOwed > 0).map(split => <div key={split.memberId} className="d-flex justify-content-between small"><span>{getMemberName(split.memberId)}</span><strong>${split.amountOwed.toFixed(2)}</strong></div>)}</div>
-                        <div className="flex-grow-1"><h6 className="text-muted small mb-2">Notes</h6>{exp.notes && <div className="small mb-2">{exp.notes}</div>}<div className="text-muted small">Added by: {exp.creator}</div></div>
-                        <div className="d-flex flex-column gap-2"><button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={e => { e.stopPropagation(); setEditingExpense(exp); setIsModalOpen(true); }}><Edit2 size={14} /> Edit</button><button className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" onClick={e => { e.stopPropagation(); setConfirmDeleteExpenseId(exp.id); }}><Trash2 size={14} /> Delete</button></div>
+                        <div className="flex-grow-1"><h6 className="text-muted small d-flex align-items-center gap-1 mb-2"><Users size={14} /> Split (equal)</h6>{(exp.splitAmong || []).filter(s => (s.share || 0) > 0).map(split => <div key={split.userId?.toString() || Math.random()} className="d-flex justify-content-between small"><span>{split.name || 'Member'}</span><strong>₹{(split.share || 0).toFixed(2)}</strong></div>)}</div>
+                        <div className="flex-grow-1"><h6 className="text-muted small mb-2">Notes</h6>{exp.receipt && <div className="small mb-2">{exp.receipt}</div>}<div className="text-muted small">Category: {exp.category}</div></div>
+                        <div className="d-flex flex-column gap-2"><button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={e => { e.stopPropagation(); setEditingExpense(exp); setIsModalOpen(true); }}><Edit2 size={14} /> Edit</button><button className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" onClick={e => { e.stopPropagation(); setConfirmDeleteExpenseId(expId); }}><Trash2 size={14} /> Delete</button></div>
                       </div>
                     </div>
                   )}

@@ -9,13 +9,15 @@
 export const calculateOptimalSettlements = (expenses, recordedSettlements, tripMembers) => {
   // 1. Calculate net balances for each member
   const balances = {};
-  tripMembers.forEach(m => balances[m.id] = { id: m.id, name: m.name, net: 0 });
+  tripMembers.forEach(m => balances[m._id || m.id] = { id: m._id || m.id, name: m.name, net: 0 });
 
   // Add what they paid, subtract what they owe (from expenses)
   expenses.forEach(exp => {
-    if (balances[exp.paidBy]) balances[exp.paidBy].net += exp.amount;
-    exp.splits.forEach(split => {
-      if (balances[split.memberId]) balances[split.memberId].net -= split.amountOwed;
+    const payerId = exp.paidBy?.userId?.toString();
+    if (payerId && balances[payerId]) balances[payerId].net += exp.amount;
+    (exp.splitAmong || []).forEach(split => {
+      const splitId = split.userId?.toString();
+      if (splitId && balances[splitId]) balances[splitId].net -= (split.share || 0);
     });
   });
 

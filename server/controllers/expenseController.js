@@ -1,4 +1,16 @@
 const Expense = require('../models/Expense');
+const Trip = require('../models/Trip');
+
+// Helper to recalculate total spent for a trip
+const updateTripSpentTotal = async (tripId) => {
+  try {
+    const expenses = await Expense.find({ trip: tripId });
+    const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    await Trip.findByIdAndUpdate(tripId, { spent: totalSpent });
+  } catch (err) {
+    console.error('Failed to update trip spent total:', err);
+  }
+};
 
 // @desc    Get all expenses for a trip
 // @route   GET /api/trips/:id/expenses
@@ -31,6 +43,8 @@ const createExpense = async (req, res) => {
       receipt: receipt || ''
     });
 
+    await updateTripSpentTotal(req.params.id);
+
     res.status(201).json(expense);
   } catch (error) {
     res.status(500).json({ message: 'Server error creating expense' });
@@ -48,6 +62,9 @@ const updateExpense = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!expense) return res.status(404).json({ message: 'Expense not found' });
+    
+    await updateTripSpentTotal(req.params.id);
+    
     res.json(expense);
   } catch (error) {
     res.status(500).json({ message: 'Server error updating expense' });
@@ -61,6 +78,9 @@ const deleteExpense = async (req, res) => {
   try {
     const expense = await Expense.findByIdAndDelete(req.params.expenseId);
     if (!expense) return res.status(404).json({ message: 'Expense not found' });
+    
+    await updateTripSpentTotal(req.params.id);
+    
     res.json({ message: 'Expense deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Server error deleting expense' });

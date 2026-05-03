@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo } from 'react';
+import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Handshake, ArrowRight, Printer, CheckCircle, Trash2, Calendar, CreditCard, IndianRupee } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
@@ -12,14 +12,19 @@ import { formatCurrency } from '../utils/formatters';
 const SettlementsPage = () => {
   const { id } = useParams();
   const { trips } = useTrip();
-  const { getExpenses, getSettlements, addSettlement, deleteSettlement } = useContext(ExpenseContext);
+  const { getExpenses, loadExpenses, getSettlements, addSettlement, deleteSettlement } = useContext(ExpenseContext);
   const trip = trips?.find(t => (t._id || t.id) === id);
   const expenses = getExpenses(id);
   const settlements = getSettlements(id);
   const tripMembers = trip?.members || [];
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [defaultTransaction, setDefaultTransaction] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  useEffect(() => {
+    if (id) loadExpenses(id);
+  }, [id, loadExpenses]);
 
   // All hooks BEFORE early returns (Rules of Hooks)
   const optimalTransactions = useMemo(() => calculateOptimalSettlements(expenses, settlements, tripMembers), [expenses, settlements, tripMembers]);

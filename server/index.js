@@ -25,11 +25,16 @@ app.use(helmet());
 // Prevent NoSQL injection
 app.use(mongoSanitize());
 
-// Rate limiting
+// Rate limiting — generous limit for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later'
+  max: 1000, // 1000 requests per 15 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', process.env.CLIENT_URL || 'http://localhost:5173');
+    res.status(429).json({ message: 'Too many requests from this IP, please try again in 15 minutes.' });
+  }
 });
 // Apply to all API routes
 app.use('/api', limiter);
