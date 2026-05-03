@@ -22,7 +22,7 @@ const BudgetPage = () => {
   
   const trip = trips?.find(t => (t._id || t.id) === id);
   const expenses = getExpenses(id);
-  const tripMembers = trip?.members || [];
+  const tripMembers = useMemo(() => trip?.members || [], [trip]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
@@ -84,13 +84,13 @@ const BudgetPage = () => {
   const tripDuration = trip.startDate && trip.endDate ? Math.max(1, Math.ceil(Math.abs(new Date(trip.endDate) - new Date(trip.startDate)) / (1000 * 60 * 60 * 24))) : 1;
   const dailyBurnRate = totalExpenses / tripDuration;
 
-  const handleSaveExpense = (data) => { if (editingExpense) updateExpense(id, editingExpense.id, data); else addExpense(id, data); setIsModalOpen(false); setEditingExpense(null); };
+  const handleSaveExpense = (data) => { if (editingExpense) updateExpense(id, editingExpense._id || editingExpense.id, data); else addExpense(id, data); setIsModalOpen(false); setEditingExpense(null); };
   const handleSaveBudget = () => { updateTrip(id, { budget: Number(budgetInput) }); setIsEditingBudget(false); };
   const getMemberName = (mId) => tripMembers.find(m => (m._id || m.id) === mId)?.name || 'Unknown';
 
   const exportCSV = () => {
     const headers = ['Date', 'Description', 'Category', 'Amount', 'Currency', 'Paid By', 'Split Type'];
-    const rows = expenses.map(exp => [new Date(exp.date).toLocaleDateString(), `"${exp.description}"`, exp.category, exp.amount, exp.currency || 'INR', `"${getMemberName(exp.paidBy)}"`, exp.splitType]);
+    const rows = expenses.map(exp => [new Date(exp.date).toLocaleDateString(), `"${exp.description}"`, exp.category, exp.amount, exp.currency || 'INR', `"${exp.paidBy?.name || getMemberName(exp.paidBy?.userId)}"`, exp.splitType]);
     const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
     const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `${trip.title.replace(/\s+/g, '_')}_expenses.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };

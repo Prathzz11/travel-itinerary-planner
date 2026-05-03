@@ -16,7 +16,7 @@ const SettlementsPage = () => {
   const trip = trips?.find(t => (t._id || t.id) === id);
   const expenses = getExpenses(id);
   const settlements = getSettlements(id);
-  const tripMembers = trip?.members || [];
+  const tripMembers = useMemo(() => trip?.members || [], [trip]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [defaultTransaction, setDefaultTransaction] = useState(null);
@@ -33,7 +33,7 @@ const SettlementsPage = () => {
   if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>;
 
   const handleSettleClick = (transaction = null) => { setDefaultTransaction(transaction); setIsModalOpen(true); };
-  const getMemberName = (mId) => tripMembers.find(m => m.id === mId)?.name || 'Unknown';
+  const getMemberName = (mId) => tripMembers.find(m => (m._id || m.id) === mId)?.name || 'Unknown';
 
   return (
     <div className="page-container animate-fade-in">

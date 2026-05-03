@@ -19,7 +19,7 @@ const ReviewSection = ({ tripId }) => {
   reviews.forEach(r => ratingCounts[r.rating]++);
 
   const sortedReviews = useMemo(() => [...reviews].sort((a, b) => {
-    if (sortBy === 'newest') return new Date(b.date) - new Date(a.date);
+    if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
     if (sortBy === 'helpful') return b.helpfulCount - a.helpfulCount;
     if (sortBy === 'rating_desc') return b.rating - a.rating;
     if (sortBy === 'rating_asc') return a.rating - b.rating;
@@ -95,7 +95,7 @@ const ReviewSection = ({ tripId }) => {
                   <div className="d-flex justify-content-between align-items-start mb-1">
                     <div>
                       <span className="fw-bold">{review.author.name}</span>{isMine && <span className="badge bg-primary ms-2 small">You</span>}
-                      <div className="text-muted small">{new Date(review.date).toLocaleDateString()}</div>
+                      <div className="text-muted small">{new Date(review.createdAt).toLocaleDateString()}</div>
                     </div>
                     <div className="d-flex gap-1" style={{ color: '#fbbf24' }}>{[1,2,3,4,5].map(i => <Star key={i} size={14} fill={i <= review.rating ? '#fbbf24' : 'transparent'} />)}</div>
                   </div>

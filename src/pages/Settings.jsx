@@ -108,7 +108,7 @@ const Settings = () => {
                 <div className="mt-4 pt-4 border-top">
                   <label className="form-label text-muted">Account Info</label>
                   <div>Email: {user?.email}</div>
-                  <div className="text-muted small mt-1">Member since: {new Date(user?.createdAt || Date.now()).toLocaleDateString()}</div>
+                  <div className="text-muted small mt-1">Member since: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</div>
                 </div>
               </div>
             </div>

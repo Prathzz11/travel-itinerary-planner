@@ -12,7 +12,7 @@ export const NotificationProvider = ({ children }) => {
 
     if (!persistent) {
       setTimeout(() => {
-        removeNotification(id);
+        setNotifications((prev) => prev.filter((notif) => notif.id !== id));
       }, 4000); // Auto-dismiss after 4 seconds
     }
   }, []);
