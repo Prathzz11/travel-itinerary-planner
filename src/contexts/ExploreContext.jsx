@@ -38,10 +38,25 @@ export const ExploreProvider = ({ children }) => {
     }
   }, []);
 
-  // Load on mount
+  // Load on mount using a local async function to avoid synchronous setState in effect
   useEffect(() => {
-    fetchPublicTrips();
-  }, [fetchPublicTrips]);
+    const load = async () => {
+      setExploreLoading(true);
+      setExploreError(null);
+      try {
+        const res = await getPublicItineraries({});
+        const { templates, total, page, pages } = res.data;
+        setPublicTrips(templates);
+        setPagination({ page, pages, total });
+      } catch (err) {
+        console.error('Failed to load public itineraries:', err);
+        setExploreError('Failed to load itineraries. Please try again.');
+      } finally {
+        setExploreLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const getTripById = useCallback((id) => publicTrips.find(t => t._id === id || t.id === id), [publicTrips]);
   const getTripsByUser = useCallback((userId) => publicTrips.filter(t => t.author?.toString() === userId || t.authorId === userId), [publicTrips]);
