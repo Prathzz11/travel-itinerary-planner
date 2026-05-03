@@ -169,10 +169,10 @@ const removeMember = async (req, res) => {
     const trip = await Trip.findById(req.params.id);
     if (!trip) return res.status(404).json({ message: 'Trip not found' });
 
-    const member = trip.members.find(m => m._id?.toString() === req.params.memberId);
+    const member = trip.members.find(m => (m._id || m.user)?.toString() === req.params.memberId);
     if (!member) return res.status(404).json({ message: 'Member not found' });
 
-    trip.members = trip.members.filter(m => m._id?.toString() !== req.params.memberId);
+    trip.members = trip.members.filter(m => (m._id || m.user)?.toString() !== req.params.memberId);
     trip.activityFeed.unshift({
       user: req.user.name,
       action: `removed ${member.name}`,
@@ -194,7 +194,7 @@ const updateMemberRole = async (req, res) => {
     const trip = await Trip.findById(req.params.id);
     if (!trip) return res.status(404).json({ message: 'Trip not found' });
 
-    const member = trip.members.find(m => m._id?.toString() === req.params.memberId);
+    const member = trip.members.find(m => (m._id || m.user)?.toString() === req.params.memberId);
     if (!member) return res.status(404).json({ message: 'Member not found' });
 
     member.role = req.body.role;

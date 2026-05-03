@@ -1,6 +1,6 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Calendar as CalendarIcon, Plus, Map as MapIcon, Search, Filter, Trash2, Edit2, ChevronDown, ChevronUp, IndianRupee, User, Printer, CheckCircle, Circle, GripVertical, FileDown } from 'lucide-react';
+import { MapPin, Calendar as CalendarIcon, Plus, Search, Filter, Trash2, Edit2, ChevronDown, ChevronUp, IndianRupee, User, Printer, CheckCircle, Circle, GripVertical, FileDown } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -10,7 +10,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ACTIVITY_CATEGORIES } from '../utils/categoryConfig';
 import TripNav from '../components/trip/TripNav';
 import ActivityModal from '../components/itinerary/ActivityModal';
-import InteractiveMap from '../components/map/InteractiveMap';
+
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 
@@ -167,7 +167,6 @@ const Itinerary = () => {
               <div className="btn-group btn-group-sm">
                 <button className={`btn ${viewMode === 'timeline' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('timeline')}>Timeline</button>
                 <button className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('calendar')}>Calendar</button>
-                <button className={`btn ${viewMode === 'map' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('map')}>Map</button>
               </div>
               {viewMode === 'timeline' && (
                 <div className="d-flex gap-2 flex-grow-1 justify-content-end">
@@ -257,12 +256,7 @@ const Itinerary = () => {
                 </div>
               )}
 
-              {/* MAP VIEW */}
-              {viewMode === 'map' && (
-                <div className="rounded-3 overflow-hidden border" style={{ height: '100%', minHeight: 400 }}>
-                  <InteractiveMap activities={filteredActivities} />
-                </div>
-              )}
+
             </div>
           </div>
         </div>

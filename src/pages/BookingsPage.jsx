@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Building, Plane, Plus, MapPin, Calendar, Hash, Clock, CheckCircle, Edit2, Trash2 } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
@@ -10,12 +10,17 @@ import EmptyState from '../components/ui/EmptyState';
 const BookingsPage = () => {
   const { id } = useParams();
   const { trips } = useTrip();
-  const { getBookings, addBooking, updateBooking, deleteBooking } = useContext(BookingContext);
+  const { getBookings, loadBookings, addBooking, updateBooking, deleteBooking } = useContext(BookingContext);
   const trip = trips?.find(t => (t._id || t.id) === id);
   const bookings = getBookings(id);
+
   const [activeTab, setActiveTab] = useState('hotel');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
+
+  useEffect(() => {
+    if (id) loadBookings(id);
+  }, [id, loadBookings]);
 
   if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>;
 

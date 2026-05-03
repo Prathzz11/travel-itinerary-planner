@@ -41,7 +41,7 @@ const MembersPage = () => {
         <div className="card-body">
           <div className="row g-3">
             {trip.members?.map(member => {
-              const memberId = member._id || member.id;
+              const memberId = member._id || member.id || member.user;
               const avatarUrl = member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=1e3a5f&color=38bdf8&size=96`;
               return (
                 <div key={memberId} className="col-md-6 col-lg-4">

@@ -37,6 +37,16 @@ export const TripProvider = ({ children }) => {
     loadTrips();
   }, [user]);
 
+  const refreshTrips = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await fetchTrips();
+      setTrips(res.data);
+    } catch (err) {
+      console.error('Failed to refresh trips:', err);
+    }
+  }, [user]);
+
   const addTrip = useCallback(async (tripData) => {
     try {
       const res = await apiCreateTrip(tripData);
@@ -137,8 +147,9 @@ export const TripProvider = ({ children }) => {
     addMember,
     removeMember,
     updateMemberRole,
-    toggleMemberPresence
-  }), [trips, tripsLoading, tripsError, addTrip, importTrip, updateTrip, deleteTrip, addMember, removeMember, updateMemberRole, toggleMemberPresence]);
+    toggleMemberPresence,
+    refreshTrips
+  }), [trips, tripsLoading, tripsError, addTrip, importTrip, updateTrip, deleteTrip, addMember, removeMember, updateMemberRole, toggleMemberPresence, refreshTrips]);
 
   return (
     <TripContext.Provider value={value}>
