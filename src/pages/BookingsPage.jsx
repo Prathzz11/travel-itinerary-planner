@@ -6,6 +6,7 @@ import { BookingContext } from '../contexts/BookingContext';
 import TripNav from '../components/trip/TripNav';
 import BookingModal from '../components/bookings/BookingModal';
 import EmptyState from '../components/ui/EmptyState';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 const BookingsPage = () => {
   const { id } = useParams();
@@ -17,6 +18,7 @@ const BookingsPage = () => {
   const [activeTab, setActiveTab] = useState('hotel');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
     if (id) loadBookings(id);
@@ -26,8 +28,8 @@ const BookingsPage = () => {
 
   const filteredBookings = bookings.filter(b => b.type === activeTab);
   const calculateNights = (checkIn, checkOut) => Math.ceil(Math.abs(new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
-  const handleSave = (data) => { if (editingBooking) updateBooking(id, editingBooking.id, data); else addBooking(id, data); setIsModalOpen(false); setEditingBooking(null); };
-  const handleDelete = (bookingId) => { if (window.confirm("Delete this booking?")) deleteBooking(id, bookingId); };
+  const handleSave = (data) => { if (editingBooking) updateBooking(id, editingBooking._id || editingBooking.id, data); else addBooking(id, data); setIsModalOpen(false); setEditingBooking(null); };
+  const handleDelete = (bookingId) => setConfirmDeleteId(bookingId);
 
   return (
     <div className="page-container animate-fade-in">
@@ -93,6 +95,7 @@ const BookingsPage = () => {
         </div>
       </div>
       <BookingModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingBooking(null); }} onSave={handleSave} type={activeTab} initialData={editingBooking} />
+      <ConfirmDialog isOpen={!!confirmDeleteId} title="Delete Booking?" message="This booking will be permanently removed." confirmLabel="Delete" onConfirm={() => { deleteBooking(id, confirmDeleteId); setConfirmDeleteId(null); }} onCancel={() => setConfirmDeleteId(null)} />
     </div>
   );
 };

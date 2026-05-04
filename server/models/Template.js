@@ -27,14 +27,16 @@ const templateSchema = new mongoose.Schema({
   },
   description: { type: String, default: '' },
   duration: { type: Number, required: true }, // number of days
+  durationDays: { type: Number },             // alias kept in sync with duration
   tags: [String],
   image: { type: String, default: '' },
   difficulty: {
     type: String,
-    enum: ['Easy', 'Moderate', 'Challenging'],
+    enum: ['Easy', 'Moderate', 'Hard', 'Challenging'],
     default: 'Easy'
   },
   estimatedBudget: { type: Number, default: 0 },
+  budget: { type: Number, default: 0 },       // alias kept in sync with estimatedBudget
   currency: { type: String, default: 'INR' },
   author: {
     type: mongoose.Schema.Types.ObjectId,
@@ -44,6 +46,8 @@ const templateSchema = new mongoose.Schema({
   authorAvatar: { type: String, default: '' },
   isPublic: { type: Boolean, default: true },
   likes: { type: Number, default: 0 },
+  forks: { type: Number, default: 0 },
+  trendingScore: { type: Number, default: 0 },
   views: { type: Number, default: 0 },
   days: [templateDaySchema],
   rating: { type: Number, default: 0 },
@@ -52,5 +56,12 @@ const templateSchema = new mongoose.Schema({
 
 // Text index for search
 templateSchema.index({ title: 'text', destination: 'text', tags: 'text' });
+
+// Keep alias fields in sync
+templateSchema.pre('save', function (next) {
+  if (this.isModified('duration')) this.durationDays = this.duration;
+  if (this.isModified('estimatedBudget')) this.budget = this.estimatedBudget;
+  next();
+});
 
 module.exports = mongoose.model('Template', templateSchema);

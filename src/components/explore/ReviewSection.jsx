@@ -27,7 +27,7 @@ const ReviewSection = ({ tripId }) => {
   }), [reviews, sortBy]);
 
   const handleOpenModal = (review = null) => {
-    if (review) { setEditingReviewId(review.id); setRating(review.rating); setComment(review.comment); }
+    if (review) { setEditingReviewId(review._id || review.id); setRating(review.rating); setComment(review.comment); }
     else { setEditingReviewId(null); setRating(0); setComment(''); }
     setIsModalOpen(true);
   };
@@ -35,13 +35,14 @@ const ReviewSection = ({ tripId }) => {
   const handleSubmitReview = (e) => {
     e.preventDefault();
     if (rating === 0) return alert('Please select a star rating.');
-    if (editingReviewId) editReview(editingReviewId, { rating, comment });
-    else addReview({ tripId, author: { id: user?.id || 'm1', name: user?.name || 'Current User', avatar: user?.avatar || 'https://i.pravatar.cc/150?u=m1' }, rating, comment });
+    if (editingReviewId) editReview(editingReviewId, tripId, { rating, comment });
+    else addReview(tripId, { rating, comment });
     setIsModalOpen(false);
   };
 
-  const handleDelete = (id) => { if (window.confirm('Delete your review?')) deleteReview(id); };
-  const userExistingReview = reviews.find(r => r.author.id === (user?.id || 'm1'));
+  const handleDelete = (reviewId) => { if (window.confirm('Delete your review?')) deleteReview(reviewId, tripId); };
+  const currentUserId = user?._id || user?.id;
+  const userExistingReview = reviews.find(r => r.author?.toString() === currentUserId?.toString());
 
   return (
     <div className="mt-5">
@@ -86,25 +87,26 @@ const ReviewSection = ({ tripId }) => {
             <h3 className="text-muted">No reviews yet</h3><p className="text-muted">Be the first to share your experience!</p>
           </div>
         ) : sortedReviews.map(review => {
-          const isMine = review.author.id === (user?.id || 'm1');
+          const reviewId = review._id || review.id;
+          const isMine = review.author?.toString() === currentUserId?.toString();
           return (
-            <div key={review.id} className="card animate-fade-in">
+            <div key={reviewId} className="card animate-fade-in">
               <div className="card-body d-flex gap-3">
-                <img src={review.author.avatar} alt={review.author.name} className="rounded-circle" style={{ width: 48, height: 48, objectFit: 'cover' }} />
+                <img src={review.authorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(review.authorName || 'User')}`} alt={review.authorName} className="rounded-circle" style={{ width: 48, height: 48, objectFit: 'cover' }} />
                 <div className="flex-grow-1">
                   <div className="d-flex justify-content-between align-items-start mb-1">
                     <div>
-                      <span className="fw-bold">{review.author.name}</span>{isMine && <span className="badge bg-primary ms-2 small">You</span>}
+                      <span className="fw-bold">{review.authorName}</span>{isMine && <span className="badge bg-primary ms-2 small">You</span>}
                       <div className="text-muted small">{new Date(review.createdAt).toLocaleDateString()}</div>
                     </div>
                     <div className="d-flex gap-1" style={{ color: '#fbbf24' }}>{[1,2,3,4,5].map(i => <Star key={i} size={14} fill={i <= review.rating ? '#fbbf24' : 'transparent'} />)}</div>
                   </div>
                   <p className="mb-2" style={{ lineHeight: 1.6 }}>{review.comment}</p>
                   <div className="d-flex justify-content-between align-items-center">
-                    <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={() => toggleHelpful(review.id)}><ThumbsUp size={14} /> Helpful ({review.helpfulCount})</button>
+                    <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={() => toggleHelpful(reviewId, tripId)}><ThumbsUp size={14} /> Helpful ({review.helpfulCount})</button>
                     {isMine && <div className="d-flex gap-2">
                       <button className="btn btn-link btn-sm text-muted p-0" onClick={() => handleOpenModal(review)}><Edit2 size={14} /> Edit</button>
-                      <button className="btn btn-link btn-sm text-danger p-0" onClick={() => handleDelete(review.id)}><Trash2 size={14} /> Delete</button>
+                      <button className="btn btn-link btn-sm text-danger p-0" onClick={() => handleDelete(reviewId)}><Trash2 size={14} /> Delete</button>
                     </div>}
                   </div>
                 </div>

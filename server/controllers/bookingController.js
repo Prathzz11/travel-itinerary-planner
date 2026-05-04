@@ -17,21 +17,29 @@ const getBookings = async (req, res) => {
 // @access  Protected
 const createBooking = async (req, res) => {
   try {
-    const { type, title, confirmationNumber, provider, status, checkIn, checkOut, amount, currency, notes, attachmentUrl } = req.body;
+    const { type, name, address, checkIn, checkOut, roomType, amenities, images,
+            airline, flightNumber, departureTime, arrivalTime,
+            cost, currency, bookingRef, link, notes } = req.body;
 
     const booking = await Booking.create({
       trip: req.params.id,
       type,
-      title,
-      confirmationNumber: confirmationNumber || '',
-      provider: provider || '',
-      status: status || 'pending',
-      checkIn,
-      checkOut,
-      amount: amount || 0,
+      name: name || '',
+      address: address || '',
+      checkIn: checkIn || '',
+      checkOut: checkOut || '',
+      roomType: roomType || '',
+      amenities: amenities || [],
+      images: images || [],
+      airline: airline || '',
+      flightNumber: flightNumber || '',
+      departureTime: departureTime || '',
+      arrivalTime: arrivalTime || '',
+      cost: cost || 0,
       currency: currency || 'INR',
-      notes: notes || '',
-      attachmentUrl: attachmentUrl || ''
+      bookingRef: bookingRef || '',
+      link: link || '',
+      notes: notes || ''
     });
 
     res.status(201).json(booking);
