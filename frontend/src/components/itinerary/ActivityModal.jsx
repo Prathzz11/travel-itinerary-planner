@@ -4,7 +4,7 @@ import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
 import { useParams } from 'react-router-dom';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 
-const CATEGORIES = ['Sightseeing', 'Dining', 'Transport', 'Accommodation', 'Shopping', 'Entertainment', 'Sports', 'Other'];
+import { ACTIVITY_CATEGORIES } from '../../utils/constants';
 
 const ActivityModal = ({ isOpen, onClose, onSave, initialData = null }) => {
   const { id: tripId } = useParams();
@@ -80,7 +80,7 @@ const ActivityModal = ({ isOpen, onClose, onSave, initialData = null }) => {
                   <div className="col-md-4">
                     <label className="form-label text-muted"><Tag size={14} className="me-1" />Category</label>
                     <select className="form-select" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                      {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      {ACTIVITY_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                   </div>
                   <div className="col-md-4">

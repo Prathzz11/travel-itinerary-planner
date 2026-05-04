@@ -6,7 +6,6 @@ const activitySchema = new mongoose.Schema({
   duration: { type: Number, default: 60 }, // minutes
   category: {
     type: String,
-    enum: ['Sightseeing', 'Food & Dining', 'Transportation', 'Accommodation', 'Entertainment', 'Shopping', 'Other'],
     default: 'Other'
   },
   location: { type: String, default: '' },
