@@ -5,12 +5,14 @@ import { useAuth } from '../../hooks/useAuth';
 import Footer from './Footer';
 import ImportTripModal from '../trip/ImportTripModal';
 
+
 const Layout = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const dropdownRef = useRef(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+
 
   // Close dropdown on route change
   useEffect(() => {
@@ -77,6 +79,7 @@ const Layout = () => {
 
               {user ? (
                 <>
+
                   <li className="nav-item">
                     <button className="btn btn-link nav-link d-flex align-items-center gap-2" onClick={() => setShowImportModal(true)}>
                       <Upload size={16} /> Import
@@ -150,7 +153,6 @@ const Layout = () => {
         </div>
         <Footer />
       </main>
-      
       {/* Global Import Modal */}
       {showImportModal && <ImportTripModal onClose={() => setShowImportModal(false)} />}
     </>

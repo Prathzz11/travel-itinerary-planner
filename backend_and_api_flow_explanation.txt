@@ -1,0 +1,402 @@
+TRAVELSYNC - COMPLETE BACKEND AND API FLOW EXPLANATION
+
+This document provides an exhaustive, in-depth explanation of the entire backend architecture, every API endpoint, the security model, the database schema, and the precise flow of data from the moment a user clicks a button on the frontend to the moment data is saved in MongoDB Atlas and returned to the browser.
+
+================================================================================
+PART 1: ARCHITECTURE OVERVIEW
+================================================================================
+
+The application follows a classic MERN (MongoDB, Express, React, Node.js) architecture with a strict client-server separation:
+
+BROWSER (React Frontend on port 5173)
+    |
+    | --- HTTP Requests via Axios --->
+    |
+EXPRESS SERVER (Node.js Backend on port 5000)
+    |
+    | --- Mongoose ODM Queries --->
+    |
+MONGODB ATLAS (Cloud Database: iternary-planner cluster, database: travelsync)
+
+The frontend NEVER talks to the database directly. Every single piece of data flows through the Express API server, which validates, authenticates, and processes requests before touching the database.
+
+================================================================================
+PART 2: BACKEND ENTRY POINT (backend/index.js)
+================================================================================
+
+When you run "npm run backend", Node.js executes backend/index.js. This file performs the following operations in exact sequence:
+
+1. LOAD ENVIRONMENT VARIABLES
+   - dotenv reads backend/.env and injects MONGO_URI, JWT_SECRET, CLIENT_URL, and PORT into process.env.
+
+2. CONNECT TO MONGODB
+   - connectDB() from config/db.js uses Mongoose to establish a persistent connection to MongoDB Atlas using the MONGO_URI connection string.
+
+3. APPLY SECURITY MIDDLEWARE
+   - helmet: Sets dozens of HTTP security headers (X-Content-Type-Options, Strict-Transport-Security, etc.) to prevent common web attacks.
+   - express-mongo-sanitize: Strips any dollar signs ($) or dots (.) from user input to prevent NoSQL injection attacks where a malicious user could craft queries like { "$gt": "" } to bypass authentication.
+   - express-rate-limit: Limits each IP address to 1000 requests per 15 minutes. If exceeded, the server returns HTTP 429 (Too Many Requests).
+
+4. APPLY CORS (Cross-Origin Resource Sharing)
+   - Configured to only accept requests from CLIENT_URL (http://localhost:5173). This means a random website cannot make API calls to your server.
+   - credentials: true allows cookies and Authorization headers to be sent cross-origin.
+
+5. MOUNT ROUTE HANDLERS
+   - /api/auth    -> authRoutes.js    (signup, login, profile)
+   - /api/trips   -> tripRoutes.js    (CRUD for trips, members, itineraries, expenses, bookings)
+   - /api/itineraries -> itineraryRoutes.js (public template browsing)
+   - /api/reviews -> reviewRoutes.js  (community ratings and comments)
+
+6. START LISTENING
+   - The server begins listening on PORT 5000.
+
+================================================================================
+PART 3: AUTHENTICATION FLOW (JWT-Based Stateless Auth)
+================================================================================
+
+The entire authentication system is stateless, meaning the server does not store sessions. Instead, it issues JSON Web Tokens (JWTs) that the frontend stores in localStorage and sends with every request.
+
+--- SIGNUP FLOW ---
+
+Frontend: User fills signup form and clicks "Create Account"
+    |
+    v
+React (Signup.jsx) -> authService.signup({ name, email, password })
+    |
+    v
+Axios (api.js) -> POST http://localhost:5000/api/auth/signup
+    |  (Axios automatically attaches Content-Type: application/json header)
+    v
+Express Router (authRoutes.js) -> No middleware (public route) -> authController.signup()
+    |
+    v
+Controller Logic:
+  1. Validates that name, email, and password are all provided
+  2. Checks if email already exists in MongoDB (User.findOne)
+  3. Creates new User document (password is automatically hashed by bcrypt in the User model's pre-save hook with 10 salt rounds)
+  4. Generates a JWT token signed with JWT_SECRET, valid for 7 days
+  5. Returns { token, user: { id, name, email, ... } }
+    |
+    v
+React (AuthContext.jsx):
+  1. Stores the JWT token in localStorage
+  2. Stores the user object in React state
+  3. Redirects user to the Dashboard
+
+--- LOGIN FLOW ---
+
+Frontend: User enters email + password and clicks "Login"
+    |
+    v
+React -> POST /api/auth/login -> authController.login()
+    |
+    v
+Controller Logic:
+  1. Finds user by email (with .select('+password') since password is excluded by default in the schema)
+  2. Calls user.matchPassword(enteredPassword) which uses bcrypt.compare() to verify the hash
+  3. If valid: generates JWT token and returns { token, user }
+  4. If invalid: returns HTTP 401 "Invalid email or password"
+
+--- PROTECTING ROUTES (middleware/auth.js) ---
+
+Every protected route passes through the "protect" middleware before reaching its controller:
+
+  1. Extracts the token from the "Authorization: Bearer <token>" header
+  2. Verifies the token using jwt.verify(token, JWT_SECRET)
+  3. Decodes the user ID from the token payload
+  4. Loads the full User document from MongoDB and attaches it to req.user
+  5. If any step fails: returns HTTP 401 "Not authorized"
+
+This means req.user is available in every protected controller function, providing the identity of the currently logged-in user.
+
+--- FRONTEND TOKEN INJECTION (frontend/src/services/api.js) ---
+
+The Axios instance has a request interceptor that automatically injects the JWT token into every outgoing request:
+
+  api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  });
+
+It also has a response interceptor that handles 401 errors globally by clearing the token and dispatching a custom "auth:unauthorized" event, which triggers logout in AuthContext.
+
+================================================================================
+PART 4: COMPLETE API ENDPOINT REFERENCE
+================================================================================
+
+Below is every single API endpoint in the system, organized by resource.
+
+--- AUTHENTICATION (/api/auth) ---
+
+POST   /api/auth/signup              Public    Create new user account
+POST   /api/auth/login               Public    Authenticate and receive JWT
+GET    /api/auth/me                  Protected Get current user's profile
+PUT    /api/auth/me                  Protected Update name, bio, avatar, preferences
+POST   /api/auth/me/viewed/:id       Protected Log a template as recently viewed
+
+--- TRIPS (/api/trips) ---
+
+GET    /api/trips                    Protected Get all trips for current user
+POST   /api/trips                    Protected Create a new trip
+POST   /api/trips/import             Protected Import trip + itinerary from data
+GET    /api/trips/:id                Protected Get single trip by ID (access check)
+PUT    /api/trips/:id                Protected Update trip details (admin only)
+DELETE /api/trips/:id                Protected Delete trip (owner only)
+
+--- MEMBERS (/api/trips/:id/members) ---
+
+POST   /api/trips/:id/members             Protected Add member to trip
+PUT    /api/trips/:id/members/:memberId   Protected Change member's role
+DELETE /api/trips/:id/members/:memberId   Protected Remove member from trip
+
+--- ITINERARY (/api/trips/:id/itinerary) ---
+
+GET    /api/trips/:id/itinerary      Protected Get itinerary (auto-creates if none)
+PUT    /api/trips/:id/itinerary      Protected Update itinerary days/activities
+
+--- EXPENSES (/api/trips/:id/expenses) ---
+
+GET    /api/trips/:id/expenses              Protected Get all expenses for trip
+POST   /api/trips/:id/expenses              Protected Create expense
+PUT    /api/trips/:id/expenses/:expenseId   Protected Update expense
+DELETE /api/trips/:id/expenses/:expenseId   Protected Delete expense
+
+--- BOOKINGS (/api/trips/:id/bookings) ---
+
+GET    /api/trips/:id/bookings              Protected Get all bookings for trip
+POST   /api/trips/:id/bookings              Protected Create booking
+PUT    /api/trips/:id/bookings/:bookingId   Protected Update booking
+DELETE /api/trips/:id/bookings/:bookingId   Protected Delete booking
+
+--- PUBLIC ITINERARIES (/api/itineraries) ---
+
+GET    /api/itineraries              Public    Browse public templates (with search, pagination)
+GET    /api/itineraries/:id          Public    Get single template (increments view count)
+
+--- REVIEWS (/api/reviews) ---
+
+GET    /api/reviews/template/:templateId      Public    Get reviews for a template
+POST   /api/reviews/template/:templateId      Protected Add review (one per user)
+PUT    /api/reviews/:id                       Protected Update own review
+DELETE /api/reviews/:id                       Protected Delete own review
+PUT    /api/reviews/:id/helpful               Protected Toggle helpful vote
+
+TOTAL: 27 API endpoints
+
+================================================================================
+PART 5: DATABASE SCHEMA (MongoDB Collections)
+================================================================================
+
+The database "travelsync" contains 7 collections:
+
+1. USERS COLLECTION
+   - name, email, password (bcrypt hash), bio, avatar
+   - role: "user" or "admin"
+   - preferences: { currency: "INR", language: "en" }
+   - recentlyViewed: array of Template ObjectIds
+   - Password is hashed automatically before save using bcrypt with 10 salt rounds
+   - Password is excluded from queries by default (select: false)
+
+2. TRIPS COLLECTION
+   - title, destination, startDate, endDate, image
+   - status: planning / confirmed / ongoing / completed / cancelled
+   - budget, spent, currency
+   - visibility: public / private
+   - owner: reference to User who created it
+   - members: embedded array of { user, name, email, avatar, role, joinedAt, online }
+   - activityFeed: embedded array of { user, action, timestamp }
+   - activitiesCount: cached count of itinerary activities
+
+3. ITINERARIES COLLECTION
+   - trip: reference to Trip (one-to-one, unique)
+   - days: array of { date, activities: [{ name, time, duration, category, location, notes, cost, order }] }
+   - notes: general notes
+   - Each activity stores a location string which the frontend geocodes for map display
+
+4. EXPENSES COLLECTION
+   - trip: reference to Trip
+   - description, amount, currency
+   - category: Food / Transport / Accommodation / Activities / Shopping / Other
+   - paidBy: { userId, name }
+   - splitAmong: [{ userId, name, share }]
+   - date, receipt (URL)
+
+5. BOOKINGS COLLECTION
+   - trip: reference to Trip
+   - type: flight / hotel / car / train / bus / activity / other
+   - title, confirmationNumber, provider
+   - status: pending / confirmed / cancelled
+   - checkIn, checkOut, amount, currency, notes, attachmentUrl
+
+6. TEMPLATES COLLECTION
+   - Publicly shared itinerary templates for the Explore page
+   - title, destination, description, duration, estimatedBudget
+   - author: reference to User
+   - authorName, authorAvatar
+   - isPublic, days (same structure as Itinerary days)
+   - rating, reviewCount, views, forkCount
+
+7. REVIEWS COLLECTION
+   - templateId: reference to Template
+   - author: reference to User
+   - authorName, authorAvatar
+   - rating (1-5), comment
+   - helpfulVotes: array of User ObjectIds
+   - helpfulCount
+
+================================================================================
+PART 6: COMPLETE DATA FLOW EXAMPLES
+================================================================================
+
+--- EXAMPLE 1: Creating a Trip ---
+
+User clicks "New Trip" on Dashboard
+    |
+    v
+CreateTrip.jsx renders a multi-step form
+User fills: title, destination, dates, budget, currency
+User clicks "Create"
+    |
+    v
+TripContext.jsx -> addTrip(formData)
+    |
+    v
+tripService.js -> api.post('/trips', formData)
+    |
+    v
+Axios interceptor injects: Authorization: Bearer eyJhbGciOiJIUzI1...
+    |
+    v
+HTTP POST arrives at Express server on port 5000
+    |
+    v
+tripRoutes.js: router.post('/', createTrip) — "protect" middleware runs first
+    |
+    v
+auth.js middleware:
+  1. Extracts token from header
+  2. jwt.verify(token, JWT_SECRET) -> decoded = { id: "60f7b2..." }
+  3. User.findById(decoded.id) -> req.user = full user document
+  4. Calls next()
+    |
+    v
+tripController.createTrip():
+  1. Destructures { title, destination, ... } from req.body
+  2. Trip.create({ ..., owner: req.user._id, members: [{ user: req.user._id, role: 'admin' }] })
+  3. Mongoose validates against Trip schema
+  4. MongoDB driver sends insertOne command to Atlas cluster
+  5. Returns the created trip document as JSON with HTTP 201
+    |
+    v
+Axios receives response -> TripContext updates trips state -> Dashboard re-renders with new trip card
+
+--- EXAMPLE 2: Viewing the Map ---
+
+User navigates to Itinerary page and clicks "Map" view
+    |
+    v
+Itinerary.jsx sets viewMode to 'map'
+    |
+    v
+useEffect fires: detects viewMode === 'map' and currentDay has activities with locations
+    |
+    v
+Google Maps Geocoder API is called for EACH activity location string:
+  geocoder.geocode({ address: "Eiffel Tower, Champ de Mars, Paris" })
+    |
+    v
+Google's servers resolve the address to: { lat: 48.8584, lng: 2.2945 }
+    |
+    v
+All resolved lat/lng pairs are passed to InteractiveMap component as props
+    |
+    v
+InteractiveMap.jsx:
+  1. useJsApiLoader loads the Google Maps SDK using VITE_GOOGLE_MAPS_API_KEY
+  2. <GoogleMap> renders the map canvas with dark mode styling
+  3. Activities are plotted as color-coded <Marker> components
+  4. fitBounds() auto-zooms to show all markers
+  5. DirectionsService calculates transit/driving route between sequential stops
+  6. <DirectionsRenderer> draws the blue polyline path on the map
+  7. Clicking a marker opens an <InfoWindow> popup with activity details
+
+NOTE: The Google Maps API is entirely a frontend operation. The backend has zero involvement in map rendering. The backend only stores location strings (like "Eiffel Tower, Paris") in the Itinerary activities. The frontend converts these strings to coordinates using Google's Geocoding API at render time.
+
+================================================================================
+PART 7: SECURITY LAYERS
+================================================================================
+
+The application implements security at multiple levels:
+
+1. PASSWORD HASHING (backend/models/User.js)
+   - Passwords are never stored in plain text
+   - bcrypt.genSalt(10) generates a unique salt
+   - bcrypt.hash(password, salt) produces a one-way hash
+   - Even if the database is compromised, passwords cannot be reversed
+
+2. JWT AUTHENTICATION (backend/middleware/auth.js)
+   - Tokens expire after 7 days
+   - Tokens are signed with a secret key (JWT_SECRET) that only the server knows
+   - If someone tampers with the token payload, jwt.verify() will reject it
+
+3. NOSQL INJECTION PREVENTION (express-mongo-sanitize)
+   - Strips dangerous operators like $gt, $ne from request body/params
+   - Prevents attacks like: { email: { "$gt": "" }, password: { "$gt": "" } }
+
+4. HTTP SECURITY HEADERS (helmet)
+   - X-Content-Type-Options: nosniff (prevents MIME-type sniffing)
+   - X-Frame-Options: DENY (prevents clickjacking)
+   - Strict-Transport-Security (forces HTTPS)
+
+5. RATE LIMITING (express-rate-limit)
+   - 1000 requests per 15 minutes per IP address
+   - Prevents brute-force login attempts and DDoS attacks
+
+6. CORS RESTRICTIONS
+   - Only http://localhost:5173 (the frontend) is allowed to make API requests
+   - Any other origin is blocked by the browser
+
+7. INPUT VALIDATION (Mongoose schemas)
+   - Required fields are enforced (title, email, password)
+   - String lengths are capped (name: 100 chars, bio: 500 chars)
+   - Enum fields restrict values (status can only be 'planning', 'confirmed', etc.)
+   - Email format is validated with regex
+
+8. AUTHORIZATION CHECKS (controllers)
+   - Trip deletion: only the owner can delete
+   - Trip updates: only admin members or the owner can modify
+   - Review deletion: only the author or an admin can delete
+   - Member management: prevents adding duplicate members
+
+================================================================================
+PART 8: FRONTEND-TO-BACKEND SERVICE MAPPING
+================================================================================
+
+The frontend organizes all API calls into dedicated service files:
+
+frontend/src/services/api.js          Base Axios instance with interceptors
+frontend/src/services/authService.js  signup(), login(), getMe(), updateProfile()
+frontend/src/services/tripService.js  fetchTrips(), createTrip(), updateTrip(), deleteTrip(), addMember(), removeMember(), importTrip()
+frontend/src/services/itineraryService.js  getItinerary(), updateItinerary()
+frontend/src/services/expenseService.js    getExpenses(), createExpense(), updateExpense(), deleteExpense()
+frontend/src/services/bookingService.js    getBookings(), createBooking(), updateBooking(), deleteBooking()
+frontend/src/services/templateService.js   getPublicTemplates(), getTemplateById()
+
+Each service file imports the base Axios "api" instance and calls specific endpoints. The Axios interceptor handles token injection and error formatting automatically, so individual service functions stay clean and focused.
+
+================================================================================
+PART 9: ENVIRONMENT VARIABLES
+================================================================================
+
+backend/.env (Server-side, completely private, never exposed to browser):
+  MONGO_URI       = MongoDB Atlas connection string with credentials
+  JWT_SECRET      = Secret key used to sign/verify JWT tokens
+  CLIENT_URL      = Allowed CORS origin (http://localhost:5173)
+  PORT            = Server port (5000)
+
+frontend/.env (Client-side, bundled into browser code, partially visible):
+  VITE_API_URL             = Backend API base URL (http://localhost:5000/api)
+  VITE_GOOGLE_MAPS_API_KEY = Google Maps API key (restricted by HTTP referrer on Google Cloud Console)
+
+IMPORTANT: Frontend environment variables prefixed with VITE_ are embedded into the JavaScript bundle at build time. They are technically visible to anyone who inspects the browser source code. This is why the Google Maps key must be restricted by domain referrer in the Google Cloud Console, and why sensitive secrets like MONGO_URI and JWT_SECRET must NEVER be placed in the frontend .env file.

@@ -22,5 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
 .env
-From KlickPin CF Futuristic digital globe of Earth with glowing data points network connections on a dark background \[Video] in 2026 _ Earth globe Dark backgrounds Abstract art images - Pin-123215739807665943.mp4
+frontend/.env
+backend/.env
