@@ -29,24 +29,28 @@ const getExpenses = async (req, res) => {
 // @access  Protected
 const createExpense = async (req, res) => {
   try {
-    const { description, amount, currency, category, paidBy, splitAmong, date, receipt } = req.body;
+    const { description, amount, currency, category, paidBy, splitAmong, date, receipt, receiptImage } = req.body;
 
     const expense = await Expense.create({
       trip: req.params.id,
       description,
-      amount,
-      currency,
-      category,
+      amount: Number(amount),
+      currency: currency || 'INR',
+      category: category || 'Other',
       paidBy: paidBy || { userId: req.user._id, name: req.user.name },
-      splitAmong: splitAmong || [],
+      splitAmong: (splitAmong || []).map(s => ({
+        userId: s.userId || s.memberId,
+        name: s.name,
+        share: Number(s.share || 0)
+      })),
       date: date || new Date(),
-      receipt: receipt || ''
+      receipt: receipt || receiptImage || ''
     });
 
     await updateTripSpentTotal(req.params.id);
-
     res.status(201).json(expense);
   } catch (error) {
+    console.error('Error creating expense:', error);
     res.status(500).json({ message: 'Server error creating expense' });
   }
 };
@@ -56,17 +60,29 @@ const createExpense = async (req, res) => {
 // @access  Protected
 const updateExpense = async (req, res) => {
   try {
+    // Sanitize to only update allowed fields
+    const { description, amount, currency, category, paidBy, splitAmong, date, receipt } = req.body;
+    const updateData = {};
+    if (description !== undefined) updateData.description = description;
+    if (amount !== undefined) updateData.amount = Number(amount);
+    if (currency !== undefined) updateData.currency = currency;
+    if (category !== undefined) updateData.category = category;
+    if (paidBy !== undefined) updateData.paidBy = paidBy;
+    if (splitAmong !== undefined) updateData.splitAmong = splitAmong.map(s => ({ userId: s.userId || s.memberId, name: s.name, share: Number(s.share || 0) }));
+    if (date !== undefined) updateData.date = date;
+    if (receipt !== undefined) updateData.receipt = receipt;
+
     const expense = await Expense.findByIdAndUpdate(
       req.params.expenseId,
-      req.body,
-      { new: true, runValidators: true }
+      updateData,
+      { new: true }
     );
     if (!expense) return res.status(404).json({ message: 'Expense not found' });
     
     await updateTripSpentTotal(req.params.id);
-    
     res.json(expense);
   } catch (error) {
+    console.error('Error updating expense:', error);
     res.status(500).json({ message: 'Server error updating expense' });
   }
 };

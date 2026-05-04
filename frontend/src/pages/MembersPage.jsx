@@ -19,7 +19,12 @@ const MembersPage = () => {
   const handleInvite = (e) => {
     e.preventDefault();
     if (!inviteEmail) return;
-    addMember(id, { id: `m${Math.random().toString().substr(2, 6)}`, name: inviteEmail.split('@')[0], email: inviteEmail, role: inviteRole, joinedAt: new Date().toISOString(), avatar: `https://i.pravatar.cc/150?u=${inviteEmail}`, online: true });
+    addMember(id, {
+      name: inviteEmail.split('@')[0],
+      email: inviteEmail,
+      role: inviteRole,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(inviteEmail.split('@')[0])}&background=1e3a5f&color=38bdf8&size=96`
+    });
     setIsInviteModalOpen(false); setInviteEmail('');
   };
 

@@ -69,9 +69,21 @@ const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null
     }
 
     const payerMember = tripMembers.find(m => (m._id || m.id || m.user || m.userId)?.toString() === form.paidBy);
-    const paidByObj = payerMember ? { userId: form.paidBy, name: payerMember.name } : { userId: form.paidBy, name: 'Unknown' };
+    const paidByObj = payerMember
+      ? { userId: payerMember.user?.toString() || payerMember._id?.toString() || form.paidBy, name: payerMember.name }
+      : { userId: form.paidBy, name: 'Unknown' };
 
-    onSave({ ...form, paidBy: paidByObj, splitAmong: finalSplits });
+    // Strip non-schema fields; map receiptImage -> receipt
+    onSave({
+      description: form.description,
+      amount: Number(form.amount),
+      currency: form.currency || 'INR',
+      category: form.category,
+      paidBy: paidByObj,
+      splitAmong: finalSplits.map(s => ({ userId: s.userId, name: s.name, share: s.share })),
+      date: form.date,
+      receipt: form.receiptImage || form.receipt || ''
+    });
     if (!initialData) { setForm(defaultForm); localStorage.removeItem('expense_draft'); }
   };
 
