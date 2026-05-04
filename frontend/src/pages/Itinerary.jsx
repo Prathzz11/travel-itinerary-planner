@@ -1,6 +1,6 @@
-import React, { useState, useContext, useMemo, useEffect } from 'react';
+import React, { useState, useContext, useMemo, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Calendar as CalendarIcon, Plus, Search, Filter, Trash2, Edit2, ChevronDown, ChevronUp, IndianRupee, User, Printer, CheckCircle, Circle, GripVertical, FileDown } from 'lucide-react';
+import { MapPin, Calendar as CalendarIcon, Plus, Search, Filter, Trash2, Edit2, ChevronDown, ChevronUp, IndianRupee, User, Printer, CheckCircle, Circle, GripVertical, FileDown, Map as MapIcon } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -10,6 +10,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ACTIVITY_CATEGORIES } from '../utils/categoryConfig';
 import TripNav from '../components/trip/TripNav';
 import ActivityModal from '../components/itinerary/ActivityModal';
+import InteractiveMap from '../components/map/InteractiveMap';
 
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -53,6 +54,7 @@ const Itinerary = () => {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
+  const [geocodedActivities, setGeocodedActivities] = useState([]);
 
   // Set first day as active once loaded
   useEffect(() => {
@@ -65,6 +67,38 @@ const Itinerary = () => {
 
   // Derive currentDay and filteredActivities BEFORE any early returns (Rules of Hooks)
   const currentDay = itineraryDays.find(d => d.date === activeDay);
+
+  // Geocode activities for the map view
+  useEffect(() => {
+    if (viewMode !== 'map' || !currentDay || !window.google?.maps) {
+      return;
+    }
+    const geocoder = new window.google.maps.Geocoder();
+    const activitiesWithLocation = currentDay.activities.filter(a => a.location);
+    
+    Promise.all(
+      activitiesWithLocation.map(act =>
+        new Promise(resolve => {
+          geocoder.geocode({ address: act.location }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+              resolve({
+                id: act._id || act.id,
+                title: act.name || act.title,
+                time: act.time || '',
+                duration: act.duration ? `${Math.floor(act.duration/60)}h${act.duration%60 ? ` ${act.duration%60}m` : ''}` : '',
+                category: act.category,
+                location: act.location,
+                lat: results[0].geometry.location.lat(),
+                lng: results[0].geometry.location.lng()
+              });
+            } else {
+              resolve(null);
+            }
+          });
+        })
+      )
+    ).then(results => setGeocodedActivities(results.filter(Boolean)));
+  }, [viewMode, currentDay]);
 
   const filteredActivities = useMemo(() => {
     if (!currentDay) return [];
@@ -167,6 +201,7 @@ const Itinerary = () => {
               <div className="btn-group btn-group-sm">
                 <button className={`btn ${viewMode === 'timeline' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('timeline')}>Timeline</button>
                 <button className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('calendar')}>Calendar</button>
+                <button className={`btn ${viewMode === 'map' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('map')}><MapIcon size={14} className="me-1" />Map</button>
               </div>
               {viewMode === 'timeline' && (
                 <div className="d-flex gap-2 flex-grow-1 justify-content-end">
@@ -253,6 +288,21 @@ const Itinerary = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* MAP VIEW */}
+              {viewMode === 'map' && (
+                <div style={{ height: '60vh', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                  {geocodedActivities.length > 0 ? (
+                    <InteractiveMap activities={geocodedActivities} />
+                  ) : (
+                    <EmptyState
+                      icon={MapPin}
+                      title="No mappable locations"
+                      message="Add activities with location details to see them plotted on the map."
+                    />
+                  )}
                 </div>
               )}
 
