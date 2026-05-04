@@ -8,7 +8,7 @@ const CATEGORIES = ['Accommodation', 'Food', 'Transport', 'Activities', 'Shoppin
 const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null }) => {
   const defaultForm = {
     description: '', amount: 0, category: 'Food', date: new Date().toISOString().slice(0, 16),
-    paidBy: tripMembers?.[0]?.id || '', splitType: 'equal', splits: [], receiptImage: '', notes: ''
+    paidBy: (tripMembers?.[0]?._id || tripMembers?.[0]?.id)?.toString() || '', splitType: 'equal', splits: [], receiptImage: '', notes: ''
   };
 
   const [form, setForm] = useLocalStorage('expense_draft', defaultForm);
@@ -17,9 +17,31 @@ const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null
 
   useEffect(() => {
     if (initialData) {
-      setForm({ ...initialData, date: initialData.date ? initialData.date.slice(0, 16) : new Date().toISOString().slice(0, 16) });
-      if (initialData.splitType === 'equal') setSelectedMembers(initialData.splits.filter(s => s.amountOwed > 0).map(s => s.memberId));
-      else { const cs = {}; initialData.splits.forEach(s => cs[s.memberId] = s.amountOwed); setCustomSplits(cs); }
+      setForm({ 
+        ...initialData, 
+        date: initialData.date ? initialData.date.slice(0, 16) : new Date().toISOString().slice(0, 16),
+        paidBy: initialData.paidBy?.memberId || initialData.paidBy?.userId || initialData.paidBy || ''
+      });
+      
+      const splitsArr = initialData.splitAmong || initialData.splits || [];
+      if (initialData.splitType === 'equal') {
+        const selectedIds = splitsArr.filter(s => (s.amountOwed > 0 || s.share > 0)).map(s => {
+          const sId = (s.memberId || s.userId)?.toString();
+          // If it's a userId, find the corresponding memberId from tripMembers
+          const member = tripMembers.find(m => m.user?.toString() === sId || m.userId?.toString() === sId || m._id?.toString() === sId || m.id?.toString() === sId);
+          return member?._id?.toString() || member?.id?.toString() || sId;
+        });
+        setSelectedMembers(selectedIds.filter(Boolean));
+      } else {
+        const cs = {};
+        splitsArr.forEach(s => {
+          const sId = (s.memberId || s.userId)?.toString();
+          const member = tripMembers.find(m => m.user?.toString() === sId || m.userId?.toString() === sId || m._id?.toString() === sId || m.id?.toString() === sId);
+          const finalId = member?._id?.toString() || member?.id?.toString() || sId;
+          cs[finalId] = s.amountOwed || s.share;
+        });
+        setCustomSplits(cs);
+      }
     }
   }, [initialData, isOpen, tripMembers]);
 
@@ -33,11 +55,17 @@ const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null
     if (form.splitType === 'equal') {
       if (selectedMembers.length === 0) return alert('Select at least one member to split with.');
       const amountPerPerson = form.amount / selectedMembers.length;
-      finalSplits = tripMembers.map(m => ({ memberId: m.id, amountOwed: selectedMembers.includes(m.id) ? amountPerPerson : 0 }));
+      finalSplits = tripMembers.map(m => {
+        const mId = (m._id || m.id)?.toString();
+        return { memberId: mId, amountOwed: selectedMembers.includes(mId) ? amountPerPerson : 0 };
+      });
     } else {
       const totalCustom = Object.values(customSplits).reduce((sum, val) => sum + (val || 0), 0);
       if (Math.abs(totalCustom - form.amount) > 0.01) return alert(`Custom split amounts must equal total amount (${form.amount}). Currently: ${totalCustom}`);
-      finalSplits = tripMembers.map(m => ({ memberId: m.id, amountOwed: customSplits[m.id] || 0 }));
+      finalSplits = tripMembers.map(m => {
+        const mId = (m._id || m.id)?.toString();
+        return { memberId: mId, amountOwed: customSplits[mId] || 0 };
+      });
     }
     onSave({ ...form, splits: finalSplits });
     if (!initialData) { setForm(defaultForm); localStorage.removeItem('expense_draft'); }
@@ -65,7 +93,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null
                 </div>
                 <div className="row g-3 mb-3">
                   <div className="col-6"><label className="form-label text-muted">Category</label><select className="form-select" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>{CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}</select></div>
-                  <div className="col-6"><label className="form-label text-muted">Paid By</label><select className="form-select" value={form.paidBy} onChange={e => setForm({...form, paidBy: e.target.value})} required>{tripMembers?.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                  <div className="col-6"><label className="form-label text-muted">Paid By</label><select className="form-select" value={form.paidBy} onChange={e => setForm({...form, paidBy: e.target.value})} required>{tripMembers?.map(m => <option key={(m._id || m.id)?.toString()} value={(m._id || m.id)?.toString()}>{m.name}</option>)}</select></div>
                 </div>
                 <div className="card mb-3"><div className="card-body">
                   <div className="d-flex justify-content-between align-items-center mb-3">
@@ -78,12 +106,12 @@ const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null
                   {form.splitType === 'equal' ? (
                     <div>
                       <div className="text-muted small mb-2">Split equally among selected: {form.amount > 0 && selectedMembers.length > 0 ? `(${(form.amount / selectedMembers.length).toFixed(2)} / person)` : ''}</div>
-                      <div className="row g-2">{tripMembers?.map(m => (<div className="col-6" key={m.id}><div className="form-check"><input className="form-check-input" type="checkbox" checked={selectedMembers.includes(m.id)} onChange={e => e.target.checked ? setSelectedMembers([...selectedMembers, m.id]) : setSelectedMembers(selectedMembers.filter(id => id !== m.id))} /><label className="form-check-label">{m.name}</label></div></div>))}</div>
+                      <div className="row g-2">{tripMembers?.map(m => (<div className="col-6" key={m._id || m.id}><div className="form-check"><input className="form-check-input" type="checkbox" checked={selectedMembers.includes(m._id || m.id)} onChange={e => e.target.checked ? setSelectedMembers([...selectedMembers, m._id || m.id]) : setSelectedMembers(selectedMembers.filter(id => id !== (m._id || m.id)))} /><label className="form-check-label">{m.name}</label></div></div>))}</div>
                     </div>
                   ) : (
                     <div className="d-flex flex-column gap-2">
                       <div className="text-muted small mb-1">Enter exact amounts (Must total {form.amount}):</div>
-                      {tripMembers?.map(m => (<div key={m.id} className="d-flex justify-content-between align-items-center"><span>{m.name}</span><input type="number" step="0.01" className="form-control form-control-sm" style={{ width: 120 }} value={customSplits[m.id] || ''} onChange={e => handleCustomSplitChange(m.id, e.target.value)} /></div>))}
+                      {tripMembers?.map(m => (<div key={m._id || m.id} className="d-flex justify-content-between align-items-center"><span>{m.name}</span><input type="number" step="0.01" className="form-control form-control-sm" style={{ width: 120 }} value={customSplits[m._id || m.id] || ''} onChange={e => handleCustomSplitChange(m._id || m.id, e.target.value)} /></div>))}
                       <div className="text-end small" style={{ color: Math.abs(Object.values(customSplits).reduce((a,b)=>a+(b||0),0) - form.amount) < 0.01 ? 'var(--color-success)' : 'var(--color-danger)' }}>Total: {Object.values(customSplits).reduce((a,b)=>a+(b||0),0).toFixed(2)} / {form.amount}</div>
                     </div>
                   )}

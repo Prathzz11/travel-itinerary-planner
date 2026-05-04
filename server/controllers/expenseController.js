@@ -29,7 +29,38 @@ const getExpenses = async (req, res) => {
 // @access  Protected
 const createExpense = async (req, res) => {
   try {
-    const { description, amount, currency, category, paidBy, splitAmong, date, receipt } = req.body;
+    const { description, amount, currency, category, paidBy, splits, date, receipt } = req.body;
+    
+    // Fetch trip to get member details
+    const trip = await Trip.findById(req.params.id);
+    if (!trip) return res.status(404).json({ message: 'Trip not found' });
+
+    // Map paidBy (memberId or userId string) to object
+    const payerMember = trip.members.find(m => 
+      m._id?.toString() === paidBy || 
+      m.id === paidBy || 
+      m.user?.toString() === paidBy
+    );
+    const paidByObj = payerMember ? {
+      memberId: payerMember._id?.toString(),
+      userId: payerMember.user,
+      name: payerMember.name
+    } : { userId: req.user._id, name: req.user.name };
+
+    // Map splits to splitAmong
+    const splitAmong = (splits || []).map(s => {
+      const member = trip.members.find(m => 
+        m._id?.toString() === s.memberId || 
+        m.id === s.memberId ||
+        m.user?.toString() === s.memberId
+      );
+      return {
+        memberId: member?._id?.toString() || s.memberId,
+        userId: member?.user,
+        name: member?.name || 'Unknown',
+        share: s.amountOwed
+      };
+    });
 
     const expense = await Expense.create({
       trip: req.params.id,
@@ -37,8 +68,8 @@ const createExpense = async (req, res) => {
       amount,
       currency,
       category,
-      paidBy: paidBy || { userId: req.user._id, name: req.user.name },
-      splitAmong: splitAmong || [],
+      paidBy: paidByObj,
+      splitAmong,
       date: date || new Date(),
       receipt: receipt || ''
     });
@@ -47,6 +78,7 @@ const createExpense = async (req, res) => {
 
     res.status(201).json(expense);
   } catch (error) {
+    console.error('Create expense error:', error);
     res.status(500).json({ message: 'Server error creating expense' });
   }
 };
@@ -56,9 +88,49 @@ const createExpense = async (req, res) => {
 // @access  Protected
 const updateExpense = async (req, res) => {
   try {
+    const { description, amount, currency, category, paidBy, splits, date, receipt } = req.body;
+    
+    const trip = await Trip.findById(req.params.id);
+    if (!trip) return res.status(404).json({ message: 'Trip not found' });
+
+    let updateData = { ...req.body };
+
+    // If paidBy is a string, it's a memberId or userId that needs mapping
+    if (typeof paidBy === 'string') {
+      const payerMember = trip.members.find(m => 
+        m._id?.toString() === paidBy || 
+        m.id === paidBy || 
+        m.user?.toString() === paidBy
+      );
+      if (payerMember) {
+        updateData.paidBy = {
+          memberId: payerMember._id?.toString(),
+          userId: payerMember.user,
+          name: payerMember.name
+        };
+      }
+    }
+
+    // If splits are provided, map to splitAmong
+    if (splits) {
+      updateData.splitAmong = splits.map(s => {
+        const member = trip.members.find(m => 
+          m._id?.toString() === s.memberId || 
+          m.id === s.memberId ||
+          m.user?.toString() === s.memberId
+        );
+        return {
+          memberId: member?._id?.toString() || s.memberId,
+          userId: member?.user,
+          name: member?.name || 'Unknown',
+          share: s.amountOwed
+        };
+      });
+    }
+
     const expense = await Expense.findByIdAndUpdate(
       req.params.expenseId,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
     if (!expense) return res.status(404).json({ message: 'Expense not found' });
@@ -67,6 +139,7 @@ const updateExpense = async (req, res) => {
     
     res.json(expense);
   } catch (error) {
+    console.error('Update expense error:', error);
     res.status(500).json({ message: 'Server error updating expense' });
   }
 };

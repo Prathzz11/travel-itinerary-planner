@@ -27,7 +27,7 @@ const SettlementsPage = () => {
   }, [id, loadExpenses]);
 
   // All hooks BEFORE early returns (Rules of Hooks)
-  const optimalTransactions = useMemo(() => calculateOptimalSettlements(expenses, settlements, tripMembers), [expenses, settlements, tripMembers]);
+  const optimalTransactions = useMemo(() => calculateOptimalSettlements(tripMembers, expenses, settlements), [tripMembers, expenses, settlements]);
 
   // Early return AFTER all hooks
   if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>;

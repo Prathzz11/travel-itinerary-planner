@@ -6,33 +6,56 @@
  * @param {Array} tripMembers - Array of member objects from TripContext
  * @returns {Array} Array of suggested transactions { from, to, amount }
  */
-export const calculateOptimalSettlements = (expenses, recordedSettlements, tripMembers) => {
-  // 1. Calculate net balances for each member
-  const balances = {};
-  tripMembers.forEach(m => balances[m._id || m.id] = { id: m._id || m.id, name: m.name, net: 0 });
+export const calculateOptimalSettlements = (tripMembers, expenses, recordedSettlements) => {
+  // 1. Calculate net balances for each member using string IDs
+  const memberMap = new Map();
+  
+  tripMembers.forEach(m => {
+    const balanceObj = { id: (m._id || m.id)?.toString(), name: m.name, net: 0 };
+    const ids = [
+      m._id?.toString(),
+      m.id?.toString(),
+      m.user?.toString(),
+      m.userId?.toString()
+    ].filter(Boolean);
+    
+    ids.forEach(id => memberMap.set(id, balanceObj));
+  });
+
+  // Helper to get the correct balance object for any given ID (member or user)
+  const getBalance = (idOrObj) => {
+    if (!idOrObj) return null;
+    const id = (idOrObj.memberId || idOrObj.userId || (typeof idOrObj === 'string' ? idOrObj : null))?.toString();
+    return id ? memberMap.get(id) : null;
+  };
 
   // Add what they paid, subtract what they owe (from expenses)
   expenses.forEach(exp => {
-    const payerId = exp.paidBy?.userId?.toString();
-    if (payerId && balances[payerId]) balances[payerId].net += exp.amount;
+    const payerBalance = getBalance(exp.paidBy);
+    if (payerBalance) payerBalance.net += Number(exp.amount || 0);
+    
     (exp.splitAmong || []).forEach(split => {
-      const splitId = split.userId?.toString();
-      if (splitId && balances[splitId]) balances[splitId].net -= (split.share || 0);
+      const splitBalance = getBalance(split);
+      if (splitBalance) splitBalance.net -= Number(split.share || 0);
     });
   });
 
-  // Adjust for recorded settlements (from settled debts)
-  // If A pays B $50 to settle, A's net goes up by 50, B's net goes down by 50
+  // Factor in recorded settlements
   recordedSettlements.forEach(settlement => {
-    if (balances[settlement.payerId]) balances[settlement.payerId].net += settlement.amount;
-    if (balances[settlement.payeeId]) balances[settlement.payeeId].net -= settlement.amount;
+    const payerBalance = getBalance(settlement.payerId);
+    const payeeBalance = getBalance(settlement.payeeId);
+    if (payerBalance) payerBalance.net += Number(settlement.amount || 0);
+    if (payeeBalance) payeeBalance.net -= Number(settlement.amount || 0);
   });
+
+  // Unique balances for calculation
+  const uniqueBalances = Array.from(new Set(memberMap.values()));
 
   // 2. Separate into debtors (net < 0) and creditors (net > 0)
   const debtors = [];
   const creditors = [];
 
-  Object.values(balances).forEach(b => {
+  uniqueBalances.forEach(b => {
     // Round to avoid floating point issues
     const net = Math.round(b.net * 100) / 100;
     if (net < 0) debtors.push({ ...b, net: Math.abs(net) }); // make net positive for easier math

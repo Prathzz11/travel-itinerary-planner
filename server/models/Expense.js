@@ -24,10 +24,12 @@ const expenseSchema = new mongoose.Schema({
   },
   paidBy: {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    memberId: { type: String }, // The ID from the trip's members array
     name: String
   },
   splitAmong: [{
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    memberId: { type: String },
     name: String,
     share: Number // amount owed
   }],

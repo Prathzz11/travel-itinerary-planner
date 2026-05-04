@@ -8,7 +8,7 @@ const memberSchema = new mongoose.Schema({
   role: { type: String, enum: ['admin', 'editor', 'viewer'], default: 'viewer' },
   joinedAt: { type: Date, default: Date.now },
   online: { type: Boolean, default: false }
-}, { _id: false });
+});
 
 const activityFeedSchema = new mongoose.Schema({
   user: String,
