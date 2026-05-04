@@ -35,8 +35,8 @@ const ReviewSection = ({ tripId }) => {
   const handleSubmitReview = (e) => {
     e.preventDefault();
     if (rating === 0) return alert('Please select a star rating.');
-    if (editingReviewId) editReview(editingReviewId, { rating, comment });
-    else addReview({ tripId, author: { id: user?.id || 'm1', name: user?.name || 'Current User', avatar: user?.avatar || 'https://i.pravatar.cc/150?u=m1' }, rating, comment });
+    if (editingReviewId) editReview(editingReviewId, tripId, { rating, comment });
+    else addReview(tripId, { author: { id: user?.id || 'm1', name: user?.name || 'Current User', avatar: user?.avatar || 'https://i.pravatar.cc/150?u=m1' }, rating, comment });
     setIsModalOpen(false);
   };
 

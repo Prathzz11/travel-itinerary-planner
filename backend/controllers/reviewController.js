@@ -47,6 +47,7 @@ const addReview = async (req, res) => {
 
     res.status(201).json(review);
   } catch (error) {
+    console.error('Error creating review:', error);
     res.status(500).json({ message: 'Server error creating review' });
   }
 };
