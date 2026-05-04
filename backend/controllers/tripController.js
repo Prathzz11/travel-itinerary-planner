@@ -157,6 +157,7 @@ const addMember = async (req, res) => {
     const updated = await trip.save();
     res.json(updated);
   } catch (error) {
+    console.error('Error adding member:', error);
     res.status(500).json({ message: 'Server error adding member' });
   }
 };

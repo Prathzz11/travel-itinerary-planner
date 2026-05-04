@@ -36,6 +36,7 @@ const createBooking = async (req, res) => {
 
     res.status(201).json(booking);
   } catch (error) {
+    console.error('Error creating booking:', error);
     res.status(500).json({ message: 'Server error creating booking' });
   }
 };
@@ -53,6 +54,7 @@ const updateBooking = async (req, res) => {
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
     res.json(booking);
   } catch (error) {
+    console.error('Error updating booking:', error);
     res.status(500).json({ message: 'Server error updating booking' });
   }
 };

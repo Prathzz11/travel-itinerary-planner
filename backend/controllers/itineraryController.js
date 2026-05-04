@@ -41,14 +41,30 @@ const updateItinerary = async (req, res) => {
   try {
     const { days, notes } = req.body;
 
+    // Sanitize activities to only include schema-allowed fields
+    const sanitizedDays = (days || []).map(day => ({
+      date: day.date,
+      activities: (day.activities || []).map(act => ({
+        ...(act._id ? { _id: act._id } : {}),
+        name: act.name || act.title || '',
+        time: act.time || '',
+        duration: typeof act.duration === 'number' ? act.duration : parseDuration(act.duration),
+        category: act.category || 'Other',
+        location: act.location || '',
+        notes: act.notes || '',
+        cost: Number(act.cost) || 0,
+        order: act.order || 0
+      }))
+    }));
+
     const itinerary = await Itinerary.findOneAndUpdate(
       { trip: req.params.id },
-      { days, notes },
-      { new: true, upsert: true, runValidators: true }
+      { days: sanitizedDays, notes: notes || '' },
+      { new: true, upsert: true }
     );
 
     // Update activity count on trip
-    const totalActivities = days.reduce((sum, day) => sum + (day.activities?.length || 0), 0);
+    const totalActivities = sanitizedDays.reduce((sum, day) => sum + (day.activities?.length || 0), 0);
     await Trip.findByIdAndUpdate(req.params.id, { activitiesCount: totalActivities });
 
     res.json(itinerary);
@@ -57,6 +73,19 @@ const updateItinerary = async (req, res) => {
     res.status(500).json({ message: 'Server error updating itinerary' });
   }
 };
+
+// Helper: parse "2h 30m" or "1h" or 90 into minutes
+function parseDuration(val) {
+  if (typeof val === 'number') return val;
+  if (!val) return 60;
+  const str = String(val);
+  const hoursMatch = str.match(/(\d+)\s*h/);
+  const minsMatch = str.match(/(\d+)\s*m/);
+  const hours = hoursMatch ? parseInt(hoursMatch[1]) : 0;
+  const mins = minsMatch ? parseInt(minsMatch[1]) : 0;
+  return (hours * 60 + mins) || 60;
+}
+
 
 // @desc    Get all public itinerary templates
 // @route   GET /api/itineraries
