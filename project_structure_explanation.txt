@@ -186,3 +186,38 @@ This performance utility directly intercepts massive mobile picture uploads insi
 
 src/utils/logger.js and sanitize.js
 These baseline files provide deep platform monitoring and cross site scripting defense. The logger bypasses typical browser consoles, collecting application stack trace routes dynamically against production bugs. The sanitizer explicitly strips dangerous unescaped HTML commands submitted through notes attempting to hijack browser behaviors.
+
+BACKEND SERVER (server folder)
+
+server/index.js
+This file serves as the main entry point for the Express.js application backend. It initializes the web server, configures critical security middleware such as helmet and express-rate-limit to prevent abuse, establishes cross-origin resource sharing (CORS) rules for secure client communication, and connects to the underlying MongoDB database. Furthermore, it organizes and mounts all modular route handlers for different application components under the /api namespace.
+
+server/package.json
+The package file for the server dictates all Node.js backend dependencies required to successfully run the API. It ensures that critical third-party security libraries like bcryptjs for password hashing, jsonwebtoken for session management, and mongoose for database interactions are consistently installed on any execution environment.
+
+server/config/db.js
+This configuration file encapsulates the logic for establishing a stable connection to the remote or local MongoDB database using Mongoose. It ensures the server gracefully handles connection states and outputs clear error diagnostics if the database becomes unreachable.
+
+server/models/
+These files contain the strict Mongoose schema definitions mapping directly to the NoSQL database collections. Files like User.js, Trip.js, and Itinerary.js define the precise shape, validation rules, and relationships of the data saved within the system, ensuring data integrity and enforcing structured relationships between travelers, their trips, and their daily planned activities.
+
+server/controllers/
+This directory hosts the core business logic of the backend application. Files like authController.js or tripController.js act as the intermediary layer between the database models and incoming network requests. They handle all complex operations: validating incoming data, querying or updating the database, handling complex operations like trip member authorization, and sending the formatted JSON response back to the client interface.
+
+server/routes/
+These router files isolate all API endpoint definitions. Files like authRoutes.js or tripRoutes.js cleanly map specific incoming HTTP requests (GET, POST, PUT, DELETE) and URL paths (like /api/auth/login) to their respective functions in the controller layer. This separation of concerns allows developers to instantly discover all available API interactions without sorting through dense business logic.
+
+API INTEGRATION AND USAGE
+
+This project relies on two distinct API paradigms to function: a Third-Party External API ecosystem provided by Google, and an Internal Custom REST API serving as the application backend.
+
+1. Third-Party API Integration (Google Maps Ecosystem)
+The application extensively integrates the Google Maps external platform to provide real-time, interactive geographical data. This is managed via the "@react-google-maps/api" library and authenticated securely through a "VITE_GOOGLE_MAPS_API_KEY" environment variable. The integration spans three distinct Google services:
+- Maps JavaScript API: Utilized primarily within "src/components/map/InteractiveMap.jsx". This API handles the physical rendering of the map canvas, allowing the application to dynamically plot custom destination markers, center coordinates on specific cities, and render interactive info-windows for travelers.
+- Places API: Employed within "src/components/itinerary/ActivityModal.jsx" to power the Autocomplete search bar. When a user begins typing a location or restaurant name, this API queries Google's massive global database in real-time, returning verified addresses, auto-completing user text, and instantly resolving the location into exact latitude/longitude coordinates.
+- Directions API: Called dynamically by the InteractiveMap component using "window.google.maps.DirectionsService". It algorithmically calculates physical routes between sequential itinerary stops, drawing visual paths across the map and estimating travel times based on specified transit or driving modes.
+
+2. Internal Custom REST API (Express.js Backend)
+The React frontend is completely decoupled from the database and relies entirely on HTTP requests to communicate with the Node.js backend.
+- Axios HTTP Client: Located centrally at "src/services/api.js", Axios acts as the primary vehicle for all outbound internal API calls. It standardizes HTTP headers, injects JSON Web Tokens for authentication, and implements "axios-retry" which automatically catches failed network requests and gracefully re-attempts them using exponential back-off delays.
+- Endpoints & Routing: The frontend targets the "VITE_API_URL" (e.g., http://localhost:5000/api), hitting dedicated routes configured by the Express server. The React application sends GET requests to fetch data (like retrieving public itineraries), POST requests to create entities (like signing up a user), and PUT/DELETE commands to alter existing database records. The entire relationship guarantees that the frontend never accesses the MongoDB database directly, maintaining strict architectural security.
