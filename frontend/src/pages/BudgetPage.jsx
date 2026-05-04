@@ -69,7 +69,8 @@ const BudgetPage = () => {
 
     const getMember = (idOrObj) => {
       if (!idOrObj) return null;
-      const id = (idOrObj.memberId || idOrObj.userId || (typeof idOrObj === 'string' ? idOrObj : null))?.toString();
+      // Prioritize userId over memberId to correctly match actual trip members
+      const id = (idOrObj.userId || idOrObj.memberId || (typeof idOrObj === 'string' ? idOrObj : null))?.toString();
       return memberMap.get(id);
     };
 

@@ -25,7 +25,8 @@ export const calculateOptimalSettlements = (tripMembers, expenses, recordedSettl
   // Helper to get the correct balance object for any given ID (member or user)
   const getBalance = (idOrObj) => {
     if (!idOrObj) return null;
-    const id = (idOrObj.memberId || idOrObj.userId || (typeof idOrObj === 'string' ? idOrObj : null))?.toString();
+    // userId takes priority over memberId — memberId may be a stale dummy ID
+    const id = (idOrObj.userId || idOrObj.memberId || (typeof idOrObj === 'string' ? idOrObj : null))?.toString();
     return id ? memberMap.get(id) : null;
   };
 
