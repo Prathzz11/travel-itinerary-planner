@@ -52,43 +52,78 @@ const BookingsPage = () => {
             <EmptyState icon={activeTab === 'hotel' ? Building : Plane} title={`No ${activeTab === 'hotel' ? 'hotels' : 'flights'} booked`} message={`Click "Add ${activeTab === 'hotel' ? 'Hotel' : 'Flight'}" to get started.`} actionLabel={`Add ${activeTab === 'hotel' ? 'Hotel' : 'Flight'}`} actionIcon={Plus} onAction={() => { setEditingBooking(null); setIsModalOpen(true); }} />
           ) : (
             <div className="row g-4">
-              {filteredBookings.map(booking => (
-                <div key={booking.id} className="col-md-6 col-lg-4">
-                  <div className="card h-100 animate-fade-in">
-                    {activeTab === 'hotel' ? (
-                      <>
-                        {booking.images?.length > 0 && <div style={{ height: 150, background: `url(${booking.images[0]}) center/cover` }} />}
-                        <div className="card-body d-flex flex-column">
-                          <div className="d-flex justify-content-between mb-2"><h6 className="fw-bold mb-0">{booking.title}</h6><div className="d-flex gap-1"><button className="btn btn-link p-0 text-muted" onClick={() => { setEditingBooking(booking); setIsModalOpen(true); }}><Edit2 size={14} /></button><button className="btn btn-link p-0 text-danger" onClick={() => handleDelete(booking._id || booking.id)}><Trash2 size={14} /></button></div></div>
-                          <div className="text-muted small d-flex align-items-center gap-1 mb-3"><MapPin size={12} /> {booking.provider}</div>
-                          <div className="row g-2 mb-3 p-2 rounded-2" style={{ background: 'rgba(0,0,0,0.15)' }}>
-                            <div className="col-6"><div className="text-muted" style={{ fontSize: '0.7rem' }}>Check-in</div><div className="fw-semibold small">{new Date(booking.checkIn).toLocaleDateString()}</div></div>
-                            <div className="col-6"><div className="text-muted" style={{ fontSize: '0.7rem' }}>Check-out</div><div className="fw-semibold small">{new Date(booking.checkOut).toLocaleDateString()}</div></div>
+              {filteredBookings.map(booking => {
+                const bTitle = booking.title || booking.name || 'Untitled Booking';
+                const bProvider = booking.provider || booking.address || booking.airline || '';
+                const bAmount = booking.amount !== undefined ? booking.amount : (booking.cost || 0);
+                const bRef = booking.confirmationNumber || booking.bookingRef || '';
+                const bId = booking._id || booking.id;
+
+                return (
+                  <div key={bId} className="col-md-6 col-lg-4">
+                    <div className="card h-100 animate-fade-in" style={{ border: editingBooking?._id === bId || editingBooking?.id === bId ? '1px solid var(--color-primary)' : undefined }}>
+                      {activeTab === 'hotel' ? (
+                        <>
+                          {(booking.images?.length > 0 || booking.attachmentUrl) && (
+                            <div style={{ height: 150, background: `url(${booking.images?.[0] || booking.attachmentUrl}) center/cover`, backgroundColor: 'rgba(0,0,0,0.2)' }} />
+                          )}
+                          <div className="card-body d-flex flex-column">
+                            <div className="d-flex justify-content-between mb-2">
+                              <h6 className="fw-bold mb-0">{bTitle}</h6>
+                              <div className="d-flex gap-1">
+                                <button className="btn btn-link p-0 text-muted" onClick={() => { setEditingBooking(booking); setIsModalOpen(true); }}><Edit2 size={14} /></button>
+                                <button className="btn btn-link p-0 text-danger" onClick={() => handleDelete(bId)}><Trash2 size={14} /></button>
+                              </div>
+                            </div>
+                            <div className="text-muted small d-flex align-items-center gap-1 mb-3">
+                              <MapPin size={12} /> {bProvider}
+                            </div>
+                            <div className="row g-2 mb-3 p-2 rounded-2" style={{ background: 'rgba(0,0,0,0.15)' }}>
+                              <div className="col-6"><div className="text-muted" style={{ fontSize: '0.7rem' }}>Check-in</div><div className="fw-semibold small">{new Date(booking.checkIn).toLocaleDateString()}</div></div>
+                              <div className="col-6"><div className="text-muted" style={{ fontSize: '0.7rem' }}>Check-out</div><div className="fw-semibold small">{new Date(booking.checkOut).toLocaleDateString()}</div></div>
+                            </div>
+                            <div className="d-flex flex-wrap gap-1 mb-3">
+                              <span className="badge bg-primary">{calculateNights(booking.checkIn, booking.checkOut)} Nights</span>
+                              {booking.status && <span className="badge bg-secondary text-capitalize">{booking.status}</span>}
+                            </div>
+                            {booking.notes && <div className="text-muted small mb-3 text-truncate-3" title={booking.notes}>{booking.notes}</div>}
+                            <div className="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                              <span className="fw-bold">{formatCurrency ? formatCurrency(bAmount) : `${bAmount} ${booking.currency || 'INR'}`}</span>
+                              {bRef && <span className="text-muted small d-flex align-items-center gap-1"><Hash size={12} /> {bRef}</span>}
+                            </div>
                           </div>
-                          <div className="d-flex flex-wrap gap-1 mb-3">
-                            <span className="badge bg-primary">{calculateNights(booking.checkIn, booking.checkOut)} Nights</span>
-                          </div>
-                          {booking.notes && <div className="text-muted small mb-3 text-truncate-3">{booking.notes}</div>}
-                          <div className="mt-auto pt-3 border-top d-flex justify-content-between"><span className="fw-bold">{formatCurrency ? formatCurrency(booking.amount) : `${booking.amount} ${booking.currency}`}</span>{booking.confirmationNumber && <span className="text-muted small"><Hash size={12} /> {booking.confirmationNumber}</span>}</div>
-                        </div>
-                      </>
-                    ) : (
+                        </>
+                      ) : (
                         <div className="card-body d-flex flex-column">
-                        <div className="d-flex justify-content-between mb-3">
-                          <div className="d-flex align-items-center gap-3"><div className="p-2 rounded-3" style={{ background: 'rgba(192,132,252,0.1)' }}><Plane size={24} color="var(--color-secondary)" /></div><div><h6 className="mb-0">{booking.title}</h6><div className="text-muted small">{booking.provider}</div></div></div>
-                          <div className="d-flex gap-1"><button className="btn btn-link p-0 text-muted" onClick={() => { setEditingBooking(booking); setIsModalOpen(true); }}><Edit2 size={14} /></button><button className="btn btn-link p-0 text-danger" onClick={() => handleDelete(booking._id || booking.id)}><Trash2 size={14} /></button></div>
+                          <div className="d-flex justify-content-between mb-3">
+                            <div className="d-flex align-items-center gap-3">
+                              <div className="p-2 rounded-3" style={{ background: 'rgba(192,132,252,0.1)' }}><Plane size={24} color="var(--color-secondary)" /></div>
+                              <div>
+                                <h6 className="mb-0">{bTitle}</h6>
+                                <div className="text-muted small">{bProvider}</div>
+                              </div>
+                            </div>
+                            <div className="d-flex gap-1">
+                              <button className="btn btn-link p-0 text-muted" onClick={() => { setEditingBooking(booking); setIsModalOpen(true); }}><Edit2 size={14} /></button>
+                              <button className="btn btn-link p-0 text-danger" onClick={() => handleDelete(bId)}><Trash2 size={14} /></button>
+                            </div>
+                          </div>
+                          <div className="d-flex align-items-center justify-content-between p-3 rounded-2 mb-3" style={{ background: 'rgba(0,0,0,0.15)' }}>
+                            <div className="text-center"><div className="fw-bold">{new Date(booking.checkIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div><div className="text-muted" style={{ fontSize: '0.7rem' }}>{new Date(booking.checkIn).toLocaleDateString()}</div></div>
+                            <div className="flex-grow-1 mx-3 text-center"><div className="text-muted" style={{ fontSize: '0.7rem' }}>Flight</div><div style={{ height: 2, background: 'var(--color-border)', position: 'relative' }}><Plane size={12} color="var(--color-secondary)" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} /></div></div>
+                            <div className="text-center"><div className="fw-bold">{new Date(booking.checkOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div><div className="text-muted" style={{ fontSize: '0.7rem' }}>{new Date(booking.checkOut).toLocaleDateString()}</div></div>
+                          </div>
+                          {booking.notes && <div className="text-muted small mb-3 text-truncate-2" title={booking.notes}>{booking.notes}</div>}
+                          <div className="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                            <span className="fw-bold">{bAmount > 0 ? (formatCurrency ? formatCurrency(bAmount) : `${bAmount} ${booking.currency || 'INR'}`) : 'Price not set'}</span>
+                            {bRef && <span className="text-muted small d-flex align-items-center gap-1"><Hash size={12} /> {bRef}</span>}
+                          </div>
                         </div>
-                        <div className="d-flex align-items-center justify-content-between p-3 rounded-2 mb-3" style={{ background: 'rgba(0,0,0,0.15)' }}>
-                          <div className="text-center"><div className="fw-bold">{new Date(booking.checkIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div><div className="text-muted" style={{ fontSize: '0.7rem' }}>{new Date(booking.checkIn).toLocaleDateString()}</div></div>
-                          <div className="flex-grow-1 mx-3 text-center"><div className="text-muted" style={{ fontSize: '0.7rem' }}>Direct</div><div style={{ height: 2, background: 'var(--color-border)', position: 'relative' }}><Plane size={12} color="var(--color-secondary)" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} /></div></div>
-                          <div className="text-center"><div className="fw-bold">{new Date(booking.checkOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div><div className="text-muted" style={{ fontSize: '0.7rem' }}>{new Date(booking.checkOut).toLocaleDateString()}</div></div>
-                        </div>
-                        <div className="mt-auto pt-3 border-top d-flex justify-content-between"><span className="fw-bold">{booking.amount > 0 ? (formatCurrency ? formatCurrency(booking.amount) : `${booking.amount} ${booking.currency}`) : 'Price not set'}</span>{booking.confirmationNumber && <span className="text-muted small"><Hash size={12} /> {booking.confirmationNumber}</span>}</div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
