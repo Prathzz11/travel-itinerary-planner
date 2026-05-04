@@ -28,10 +28,61 @@ const InteractiveMap = ({ activities = [] }) => {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [directions, setDirections] = useState(null);
 
-  // Filter activities that actually have lat/lng
-  const validActivities = useMemo(() => {
-    return activities.filter(a => a.lat && a.lng);
-  }, [activities]);
+  const [geocodedActivities, setGeocodedActivities] = useState([]);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Geocode activities that have a location but no lat/lng
+  useEffect(() => {
+    if (!isLoaded || !activities.length) {
+      setGeocodedActivities([]);
+      return;
+    }
+
+    const geocoder = new window.google.maps.Geocoder();
+    let isMounted = true;
+    
+    const geocodeAll = async () => {
+      setIsGeocoding(true);
+      const results = [];
+      
+      for (const act of activities) {
+        if (act.lat && act.lng) {
+          results.push(act);
+          continue;
+        }
+        if (!act.location) continue;
+        
+        try {
+          // Small delay to avoid OVER_QUERY_LIMIT
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          const response = await new Promise((resolve, reject) => {
+            geocoder.geocode({ address: act.location }, (res, status) => {
+              if (status === 'OK' && res[0]) resolve(res[0]);
+              else reject(status);
+            });
+          });
+          
+          results.push({
+            ...act,
+            lat: response.geometry.location.lat(),
+            lng: response.geometry.location.lng()
+          });
+        } catch (error) {
+          console.warn(`Geocoding failed for ${act.location}:`, error);
+        }
+      }
+      
+      if (isMounted) {
+        setGeocodedActivities(results);
+        setIsGeocoding(false);
+      }
+    };
+
+    geocodeAll();
+
+    return () => { isMounted = false; };
+  }, [activities, isLoaded]);
 
   // Fit bounds to all markers when map loads or activities change
   const fitBounds = useCallback((mapInstance, points) => {
@@ -50,20 +101,19 @@ const InteractiveMap = ({ activities = [] }) => {
   }, []);
 
   useEffect(() => {
-    if (map && validActivities.length > 0) {
-      fitBounds(map, validActivities);
+    if (map && geocodedActivities.length > 0) {
+      fitBounds(map, geocodedActivities);
     }
-  }, [map, validActivities, fitBounds]);
+  }, [map, geocodedActivities, fitBounds]);
 
-  // Calculate route between activities if there are more than 1
   useEffect(() => {
-    if (!isLoaded || validActivities.length < 2) {
+    if (!isLoaded || geocodedActivities.length < 2) {
       setDirections(null);
       return;
     }
 
     const directionsService = new window.google.maps.DirectionsService();
-    const sorted = [...validActivities].sort((a, b) => a.time.localeCompare(b.time));
+    const sorted = [...geocodedActivities].sort((a, b) => a.time.localeCompare(b.time));
     
     const origin = { lat: sorted[0].lat, lng: sorted[0].lng };
     const destination = { lat: sorted[sorted.length - 1].lat, lng: sorted[sorted.length - 1].lng };
@@ -93,7 +143,7 @@ const InteractiveMap = ({ activities = [] }) => {
         }
       }
     });
-  }, [isLoaded, validActivities]);
+  }, [isLoaded, geocodedActivities]);
 
   const onMapLoad = useCallback((mapInstance) => {
     setMap(mapInstance);
@@ -112,6 +162,12 @@ const InteractiveMap = ({ activities = [] }) => {
       {!apiKey && (
         <div style={{ position: 'absolute', top: 10, left: 10, right: 10, zIndex: 10, background: 'rgba(245, 158, 11, 0.9)', color: 'white', padding: '8px 12px', borderRadius: '4px', fontSize: '0.85rem', textAlign: 'center', backdropFilter: 'blur(4px)' }}>
           <strong>Missing API Key:</strong> Map is running in development mode. Add VITE_GOOGLE_MAPS_API_KEY to .env to remove watermark and enable routing.
+        </div>
+      )}
+
+      {isGeocoding && (
+        <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10, background: 'rgba(15, 23, 42, 0.8)', color: 'white', padding: '6px 12px', borderRadius: 'var(--radius-full)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', backdropFilter: 'blur(4px)' }}>
+          <div className="spinner-border spinner-border-sm text-primary" role="status" /> Mapping route...
         </div>
       )}
 
@@ -144,7 +200,7 @@ const InteractiveMap = ({ activities = [] }) => {
         }}
       >
         {/* Only render raw markers if we don't have directions (directions renderer draws its own markers, but we want custom ones) */}
-        {!directions && validActivities.map((act) => (
+        {!directions && geocodedActivities.map((act) => (
           <Marker
             key={act.id}
             position={{ lat: act.lat, lng: act.lng }}
@@ -171,7 +227,7 @@ const InteractiveMap = ({ activities = [] }) => {
               }} 
             />
             {/* Re-draw our custom markers on top of the route */}
-            {validActivities.map((act) => (
+            {geocodedActivities.map((act) => (
               <Marker
                 key={act.id}
                 position={{ lat: act.lat, lng: act.lng }}

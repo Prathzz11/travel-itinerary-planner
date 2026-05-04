@@ -261,8 +261,8 @@ const Itinerary = () => {
               {/* MAP VIEW */}
               {viewMode === 'map' && currentDay && (
                 <div style={{ height: '60vh', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-                  {filteredActivities.filter(a => a.lat && a.lng).length > 0 ? (
-                    <InteractiveMap activities={filteredActivities.filter(a => a.lat && a.lng)} />
+                  {filteredActivities.filter(a => a.location).length > 0 ? (
+                    <InteractiveMap activities={filteredActivities} />
                   ) : (
                     <EmptyState
                       icon={MapPin}
