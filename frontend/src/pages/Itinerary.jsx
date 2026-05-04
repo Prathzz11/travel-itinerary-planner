@@ -10,6 +10,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ACTIVITY_CATEGORIES } from '../utils/categoryConfig';
 import TripNav from '../components/trip/TripNav';
 import ActivityModal from '../components/itinerary/ActivityModal';
+import InteractiveMap from '../components/map/InteractiveMap';
 
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -167,6 +168,7 @@ const Itinerary = () => {
               <div className="btn-group btn-group-sm">
                 <button className={`btn ${viewMode === 'timeline' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('timeline')}>Timeline</button>
                 <button className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('calendar')}>Calendar</button>
+                <button className={`btn ${viewMode === 'map' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setViewMode('map')}>Map</button>
               </div>
               {viewMode === 'timeline' && (
                 <div className="d-flex gap-2 flex-grow-1 justify-content-end">
@@ -253,6 +255,21 @@ const Itinerary = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* MAP VIEW */}
+              {viewMode === 'map' && currentDay && (
+                <div style={{ height: '60vh', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                  {filteredActivities.filter(a => a.lat && a.lng).length > 0 ? (
+                    <InteractiveMap activities={filteredActivities.filter(a => a.lat && a.lng)} />
+                  ) : (
+                    <EmptyState
+                      icon={MapPin}
+                      title="No mappable locations"
+                      message="Add activities with location details to see them plotted on the map."
+                    />
+                  )}
                 </div>
               )}
 
