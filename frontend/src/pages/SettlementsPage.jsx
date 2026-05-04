@@ -67,7 +67,7 @@ const SettlementsPage = () => {
                     <div className="d-flex align-items-center gap-3 flex-grow-1">
                       <div className="d-flex flex-column align-items-center gap-1"><div className="rounded-circle d-flex align-items-center justify-content-center fw-bold" style={{ width: 40, height: 40, background: 'rgba(239,68,68,0.2)', border: '2px solid var(--color-danger)' }}>{tx.from.name.charAt(0)}</div><span className="small fw-semibold">{tx.from.name}</span></div>
                       <div className="flex-grow-1 d-flex flex-column align-items-center" style={{ minWidth: 80 }}>
-                        <span className="fw-bold fs-5">${tx.amount.toFixed(2)}</span>
+                        <span className="fw-bold fs-5">{formatCurrency(tx.amount)}</span>
                         <div className="w-100 position-relative" style={{ height: 2, background: 'var(--color-border)' }}><ArrowRight size={14} className="text-muted position-absolute top-50 end-0" style={{ transform: 'translateY(-50%)' }} /></div>
                         <span className="text-muted small">owes</span>
                       </div>
@@ -94,7 +94,7 @@ const SettlementsPage = () => {
                       <div className="text-muted small d-flex gap-3"><span className="d-inline-flex align-items-center gap-1"><Calendar size={12} /> {new Date(s.date).toLocaleDateString()}</span><span className="d-inline-flex align-items-center gap-1"><CreditCard size={12} /> {s.method}</span>{s.notes && <span>• {s.notes}</span>}</div>
                     </div>
                     <div className="d-flex align-items-center gap-3">
-                      <span className="fw-bold fs-5" style={{ color: 'var(--color-success)' }}>${s.amount.toFixed(2)}</span>
+                      <span className="fw-bold fs-5" style={{ color: 'var(--color-success)' }}>{formatCurrency(s.amount)}</span>
                       <button className="btn btn-link p-0 text-danger no-print" onClick={() => setConfirmDeleteId(s.id)} title="Delete" aria-label="Delete settlement"><Trash2 size={16} /></button>
                     </div>
                   </div>

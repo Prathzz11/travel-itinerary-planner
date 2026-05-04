@@ -18,10 +18,11 @@ const BudgetPage = () => {
   const { id } = useParams();
   const { trips, updateTrip, refreshTrips } = useTrip();
   const { user } = useAuth();
-  const { getExpenses, loadExpenses, addExpense, updateExpense, deleteExpense } = useContext(ExpenseContext);
+  const { getExpenses, loadExpenses, getSettlements, addExpense, updateExpense, deleteExpense } = useContext(ExpenseContext);
   
   const trip = trips?.find(t => (t._id || t.id) === id);
   const expenses = getExpenses(id);
+  const settlements = getSettlements(id);
   const tripMembers = trip?.members || [];
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,12 +83,23 @@ const BudgetPage = () => {
       });
     });
 
+    // Factor in recorded settlements
+    settlements.forEach(settlement => {
+      const payer = getMember(settlement.payerId);
+      const payee = getMember(settlement.payeeId);
+      
+      // If A pays B, A's paid amount increases (they contributed more to the group's balance)
+      // and B's owes amount increases (they received money, so they owe it back conceptually)
+      if (payer) payer.paid += Number(settlement.amount || 0);
+      if (payee) payee.owes += Number(settlement.amount || 0);
+    });
+
     // Get unique member objects from the map values
     return Array.from(new Set(memberMap.values())).map(m => ({
       ...m,
       net: m.paid - m.owes
     })).sort((a, b) => b.net - a.net);
-  }, [expenses, tripMembers]);
+  }, [expenses, tripMembers, settlements]);
 
   const getMemberName = useCallback((paidBy) => {
     if (!paidBy) return 'Unknown';
@@ -160,7 +172,7 @@ const BudgetPage = () => {
 
         <div className="card-body">
           {/* Over Budget Alert */}
-          {isOverBudget && <div className="alert alert-danger d-flex align-items-center gap-2 mb-4"><AlertTriangle size={20} /><strong>Over Budget:</strong> Exceeded by ${(totalExpenses - budgetLimit).toFixed(2)}.</div>}
+          {isOverBudget && <div className="alert alert-danger d-flex align-items-center gap-2 mb-4"><AlertTriangle size={20} /><strong>Over Budget:</strong> Exceeded by {formatCurrency(totalExpenses - budgetLimit)}.</div>}
 
           {/* Summary Stats */}
           <div className="row g-3 mb-4">
@@ -192,7 +204,7 @@ const BudgetPage = () => {
                       const pct = totalExpenses > 0 ? (item.value / totalExpenses * 100) : 0;
                       return (
                         <div key={item.name}>
-                          <div className="d-flex justify-content-between small mb-1"><span>{item.name}</span><span className="fw-semibold">${item.value.toFixed(2)} ({pct.toFixed(0)}%)</span></div>
+                          <div className="d-flex justify-content-between small mb-1"><span>{item.name}</span><span className="fw-semibold">{formatCurrency(item.value)} ({pct.toFixed(0)}%)</span></div>
                           <div className="progress" style={{ height: 6 }}><div className="progress-bar" style={{ width: `${pct}%`, background: CATEGORY_COLORS[item.name] || '#ccc' }} /></div>
                         </div>
                       );
