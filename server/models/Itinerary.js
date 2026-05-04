@@ -6,7 +6,6 @@ const activitySchema = new mongoose.Schema({
   duration: { type: Number, default: 60 }, // minutes
   category: {
     type: String,
-    enum: ['Sightseeing', 'Food & Dining', 'Transportation', 'Accommodation', 'Entertainment', 'Shopping', 'Other'],
     default: 'Other'
   },
   location: { type: String, default: '' },
@@ -16,7 +15,9 @@ const activitySchema = new mongoose.Schema({
 }, { _id: true });
 
 const daySchema = new mongoose.Schema({
-  date: { type: String, required: true }, // ISO date string e.g. "2026-06-15"
+  date: { type: String, required: false }, // ISO date string e.g. "2026-06-15"
+  dayNumber: { type: Number },
+  title: { type: String },
   activities: [activitySchema]
 }, { _id: false });
 

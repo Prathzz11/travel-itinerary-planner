@@ -21,7 +21,11 @@ const TripDetail = () => {
   const trip = trips?.find(t => (t._id || t.id) === id);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  React.useEffect(() => { const timer = setTimeout(() => setIsLoading(false), 800); return () => clearTimeout(timer); }, [id]);
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, [id]);
   React.useEffect(() => {
     if (location.state?.autoEdit && trip) { 
       const formattedTrip = {

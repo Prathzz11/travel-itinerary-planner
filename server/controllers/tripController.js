@@ -29,8 +29,8 @@ const createTrip = async (req, res) => {
     const trip = await Trip.create({
       title,
       destination,
-      startDate,
-      endDate,
+      startDate: startDate || null,
+      endDate: endDate || null,
       image: image || '',
       budget: budget || 0,
       currency: currency || 'INR',
@@ -56,6 +56,9 @@ const createTrip = async (req, res) => {
     res.status(201).json(trip);
   } catch (error) {
     console.error('Create trip error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: error.message });
+    }
     res.status(500).json({ message: 'Server error creating trip' });
   }
 };
@@ -223,8 +226,8 @@ const importTrip = async (req, res) => {
     const trip = await Trip.create({
       title,
       destination,
-      startDate,
-      endDate,
+      startDate: startDate || null,
+      endDate: endDate || null,
       budget: budget || 0,
       currency: currency || 'INR',
       visibility: 'private',
@@ -248,9 +251,26 @@ const importTrip = async (req, res) => {
 
     // 2. Create the associated Itinerary with the parsed days/activities
     if (days && Array.isArray(days)) {
+      const itineraryDays = days.map((day, index) => {
+        const dayObj = {
+          dayNumber: day.dayNumber || (index + 1),
+          title: day.title || '',
+          activities: day.activities || []
+        };
+
+        // If trip has a startDate, calculate the date for this day
+        if (startDate) {
+          const baseDate = new Date(startDate);
+          baseDate.setDate(baseDate.getDate() + (dayObj.dayNumber - 1));
+          dayObj.date = baseDate.toISOString().split('T')[0];
+        }
+
+        return dayObj;
+      });
+
       await Itinerary.create({
         trip: trip._id,
-        days: days
+        days: itineraryDays
       });
       
       // 3. Automatically publish as a public Template for the Explore page (if requested)
@@ -280,6 +300,9 @@ const importTrip = async (req, res) => {
     res.status(201).json(trip);
   } catch (error) {
     console.error('Import trip error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: error.message });
+    }
     res.status(500).json({ message: 'Server error importing trip' });
   }
 };

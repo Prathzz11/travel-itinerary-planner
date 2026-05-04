@@ -28,8 +28,8 @@ const tripSchema = new mongoose.Schema({
     required: [true, 'Destination is required'],
     trim: true
   },
-  startDate: { type: Date, required: [true, 'Start date is required'] },
-  endDate: { type: Date, required: [true, 'End date is required'] },
+  startDate: { type: Date },
+  endDate: { type: Date },
   image: { type: String, default: '' },
   status: {
     type: String,

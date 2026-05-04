@@ -29,6 +29,12 @@ const ExistingItineraryDetail = () => {
   const [config, setConfig] = useState({ title: `${trip?.title || 'Trip'} (Copy)`, startDate: '', endDate: '', budget: trip?.budget || 0, includeActivities: true, includeBookings: true, includeExpenses: false });
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    if (isWizardOpen) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [isWizardOpen]);
+
   if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Itinerary not found</h2></div></div>;
 
   const handleFork = async () => {
@@ -195,14 +201,51 @@ const ExistingItineraryDetail = () => {
       {isWizardOpen && (
         <>
           <div className="modal-backdrop show" style={{ backdropFilter: 'blur(4px)', zIndex: 1040, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }} onClick={() => setIsWizardOpen(false)} />
-          <div className="modal d-flex align-items-center justify-content-center" tabIndex="-1" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1050, overflow: 'hidden' }}>
-            <div className="modal-dialog w-100" style={{ maxWidth: '600px', margin: 0 }}>
+          <div className="modal d-flex align-items-start justify-content-center pt-5" tabIndex="-1" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1050, overflowY: 'auto' }}>
+            <div className="modal-dialog w-100" style={{ maxWidth: '600px', margin: '2rem auto' }}>
               <div className="modal-content animate-scale-in">
-                <div className="modal-header">
-                  <div><h5 className="modal-title mb-1">Fork Itinerary</h5><div className="d-flex gap-2 text-muted small">{[1,2,3].map(s => <span key={s} style={{ color: step >= s ? 'var(--color-primary)' : undefined, fontWeight: step >= s ? 'bold' : 'normal' }}>{s}. {s===1?'Basics':s===2?'Content':'Review'}</span>)}</div></div>
+                <div className="modal-header border-0 pb-0">
+                  <h5 className="modal-title fw-bold">Fork Itinerary</h5>
                   <button type="button" className="btn-close btn-close-white" onClick={() => setIsWizardOpen(false)}></button>
                 </div>
-                <div className="modal-body">
+                
+                {/* Wizard Tabs */}
+                <div className="px-4 pt-3 pb-2">
+                  <div className="d-flex align-items-center justify-content-between position-relative mb-4">
+                    {/* Background Progress Line */}
+                    <div className="position-absolute top-50 start-0 end-0 translate-middle-y" style={{ height: 2, background: 'rgba(255,255,255,0.1)', zIndex: 0 }}></div>
+                    <div className="position-absolute top-50 start-0 translate-middle-y transition-all" style={{ height: 2, background: 'var(--color-primary)', width: `${(step - 1) * 50}%`, zIndex: 1, transition: 'width 0.3s ease' }}></div>
+                    
+                    {[1, 2, 3].map(s => {
+                      const isActive = step >= s;
+                      const isCurrent = step === s;
+                      const label = s === 1 ? 'Basics' : s === 2 ? 'Content' : 'Review';
+                      
+                      return (
+                        <div key={s} className="d-flex flex-column align-items-center position-relative" style={{ zIndex: 2 }}>
+                          <div 
+                            className={`rounded-circle d-flex align-items-center justify-content-center mb-2 transition-all ${isActive ? 'bg-primary shadow-glow' : 'bg-dark border border-secondary'}`}
+                            style={{ 
+                              width: 32, 
+                              height: 32, 
+                              fontSize: '0.8rem', 
+                              fontWeight: 'bold',
+                              color: isActive ? '#000' : 'var(--bs-gray-500)',
+                              transform: isCurrent ? 'scale(1.2)' : 'scale(1)'
+                            }}
+                          >
+                            {isActive && s < step ? <CheckCircle size={16} /> : s}
+                          </div>
+                          <span className={`small fw-bold transition-all ${isActive ? 'text-primary' : 'text-muted'}`} style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="modal-body pt-0">
                   {step === 1 && (
                     <div className="animate-slide-left d-flex flex-column gap-3">
                       <div><label className="form-label text-muted">New Trip Name</label><input type="text" className="form-control" value={config.title} onChange={e => setConfig({...config, title: e.target.value})} /></div>

@@ -12,6 +12,10 @@ const ImportTripModal = ({ onClose }) => {
   const [error, setError] = useState(null);
   const [preview, setPreview] = useState(null);
 
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
@@ -132,8 +136,9 @@ const ImportTripModal = ({ onClose }) => {
           background: 'rgba(5, 10, 24, 0.65)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '1rem',
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+          padding: '5rem 1rem',
+          overflowY: 'auto',
           animation: 'fadeIn 0.18s ease',
         }}
         onClick={e => e.target === e.currentTarget && onClose()}
@@ -145,6 +150,7 @@ const ImportTripModal = ({ onClose }) => {
           borderRadius: '1.25rem',
           boxShadow: '0 8px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(56,189,248,0.08), inset 0 1px 0 rgba(255,255,255,0.06)',
           overflow: 'hidden',
+          marginBottom: '2rem',
           animation: 'scaleIn 0.2s cubic-bezier(0.34,1.56,0.64,1)',
         }}>
           {/* Fake modal-content shell for the inner content */}
