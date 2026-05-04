@@ -7,10 +7,11 @@ const SettlementModal = ({ isOpen, onClose, onSave, tripMembers, defaultTransact
   const [form, setForm] = useState({ payerId: '', payeeId: '', amount: 0, date: new Date().toISOString().slice(0, 16), method: 'Cash', notes: '' });
 
   useEffect(() => {
+    const getId = (m) => (m?.user || m?._id || m?.id)?.toString() || '';
     if (defaultTransaction) {
       setForm({ payerId: defaultTransaction.from.id, payeeId: defaultTransaction.to.id, amount: defaultTransaction.amount, date: new Date().toISOString().slice(0, 16), method: 'Venmo', notes: '' });
     } else {
-      setForm({ payerId: tripMembers?.[0]?.id || '', payeeId: tripMembers?.[1]?.id || '', amount: 0, date: new Date().toISOString().slice(0, 16), method: 'Cash', notes: '' });
+      setForm({ payerId: getId(tripMembers?.[0]), payeeId: getId(tripMembers?.[1]), amount: 0, date: new Date().toISOString().slice(0, 16), method: 'Cash', notes: '' });
     }
   }, [defaultTransaction, isOpen, tripMembers]);
 
@@ -36,9 +37,9 @@ const SettlementModal = ({ isOpen, onClose, onSave, tripMembers, defaultTransact
             <div className="modal-body">
               <form id="settlementForm" onSubmit={handleSubmit}>
                 <div className="row g-3 mb-3 align-items-end">
-                  <div className="col-5"><label className="form-label text-muted">Who Paid</label><select className="form-select" value={form.payerId} onChange={e => setForm({...form, payerId: e.target.value})} required>{tripMembers?.map(m => <option key={(m._id || m.id)?.toString()} value={(m._id || m.id)?.toString()}>{m.name}</option>)}</select></div>
+                  <div className="col-5"><label className="form-label text-muted">Who Paid</label><select className="form-select" value={form.payerId} onChange={e => setForm({...form, payerId: e.target.value})} required>{tripMembers?.map(m => { const mId = (m.user || m._id || m.id)?.toString(); return <option key={mId} value={mId}>{m.name}</option>; })}</select></div>
                   <div className="col-2 text-center pb-2" style={{ fontSize: '1.5rem', color: 'var(--color-text-muted)' }}>&rarr;</div>
-                  <div className="col-5"><label className="form-label text-muted">Who Received</label><select className="form-select" value={form.payeeId} onChange={e => setForm({...form, payeeId: e.target.value})} required>{tripMembers?.map(m => <option key={(m._id || m.id)?.toString()} value={(m._id || m.id)?.toString()}>{m.name}</option>)}</select></div>
+                  <div className="col-5"><label className="form-label text-muted">Who Received</label><select className="form-select" value={form.payeeId} onChange={e => setForm({...form, payeeId: e.target.value})} required>{tripMembers?.map(m => { const mId = (m.user || m._id || m.id)?.toString(); return <option key={mId} value={mId}>{m.name}</option>; })}</select></div>
                 </div>
                 <div className="row g-3 mb-3">
                   <div className="col-6"><label className="form-label text-muted">Amount</label><input type="number" step="0.01" className="form-control" style={{ fontSize: '1.2rem', fontWeight: 'bold' }} value={form.amount || ''} onChange={e => setForm({...form, amount: Number(e.target.value)})} required /></div>

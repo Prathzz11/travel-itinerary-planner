@@ -33,7 +33,13 @@ const SettlementsPage = () => {
   if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>;
 
   const handleSettleClick = (transaction = null) => { setDefaultTransaction(transaction); setIsModalOpen(true); };
-  const getMemberName = (mId) => tripMembers.find(m => m.id === mId)?.name || 'Unknown';
+  const getMemberName = (mId) => {
+    if (!mId) return 'Unknown';
+    const match = tripMembers.find(m =>
+      (m.user || m._id || m.id)?.toString() === mId?.toString()
+    );
+    return match?.name || 'Unknown';
+  };
 
   return (
     <div className="page-container animate-fade-in">
