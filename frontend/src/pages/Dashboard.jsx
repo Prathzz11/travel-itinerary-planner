@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Plus, Calendar, MapPin, Compass, Upload } from 'lucide-react';
+import { Search, Plus, Calendar, MapPin, Compass } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { useDebounce } from '../hooks/useDebounce';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import TripCard from '../components/trip/TripCard';
 import EmptyState from '../components/ui/EmptyState';
-import ImportTripModal from '../components/trip/ImportTripModal';
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [timeFilter, setTimeFilter] = useLocalStorage('dashboard_timeFilter', 'all');
   const [sortBy, setSortBy] = useLocalStorage('dashboard_sortBy', 'newest');
   const [isLoading, setIsLoading] = useState(true);
-  const [showImportModal, setShowImportModal] = useState(false);
+
   
   const debouncedSearch = useDebounce(search, 500);
 
@@ -69,9 +69,6 @@ const Dashboard = () => {
           <p className="text-muted mb-0">Manage and organize your personal travel universe.</p>
         </div>
         <div className="d-flex gap-2">
-          <button className="btn btn-outline-secondary d-flex align-items-center gap-2" onClick={() => setShowImportModal(true)}>
-            <Upload size={18} /> Import
-          </button>
           {trips.length > 0 && (
             <Link to="/create-trip" className="btn btn-primary d-flex align-items-center gap-2">
               <Plus size={18} /> New Trip
@@ -185,7 +182,6 @@ const Dashboard = () => {
         />
       )}
 
-      {showImportModal && <ImportTripModal onClose={() => setShowImportModal(false)} />}
     </div>
   );
 };
