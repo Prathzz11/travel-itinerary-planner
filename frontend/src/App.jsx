@@ -31,6 +31,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const MembersPage = lazy(() => import('./pages/MembersPage'));
 const BookingsPage = lazy(() => import('./pages/BookingsPage'));
 const SettlementsPage = lazy(() => import('./pages/SettlementsPage'));
+const MapPage = lazy(() => import('./pages/MapPage'));
 const PublicProfile = lazy(() => import('./pages/PublicProfile'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
 const Careers = lazy(() => import('./pages/Careers'));
@@ -88,6 +89,7 @@ function App() {
                     <Route path="create-trip" element={<ProtectedRoute><CreateTrip /></ProtectedRoute>} />
                     <Route path="trip/:id" element={<ProtectedRoute><TripDetail /></ProtectedRoute>} />
                     <Route path="trip/:id/itinerary" element={<ProtectedRoute><Itinerary /></ProtectedRoute>} />
+                    <Route path="trip/:id/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
                     <Route path="trip/:id/budget" element={<ProtectedRoute><BudgetPage /></ProtectedRoute>} />
                     <Route path="trip/:id/settlements" element={<ProtectedRoute><SettlementsPage /></ProtectedRoute>} />
                     <Route path="trip/:id/members" element={<ProtectedRoute><MembersPage /></ProtectedRoute>} />

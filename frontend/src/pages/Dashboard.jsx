@@ -7,7 +7,6 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import TripCard from '../components/trip/TripCard';
 import EmptyState from '../components/ui/EmptyState';
 import ImportTripModal from '../components/trip/ImportTripModal';
-import DashboardMap from '../components/map/DashboardMap';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -126,12 +125,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Global Map */}
-      {trips.length > 0 && (
-        <div className="mb-4">
-          <DashboardMap trips={filteredTrips} />
-        </div>
-      )}
 
       {/* Controls */}
       {trips.length > 0 && (
