@@ -21,6 +21,7 @@ export const ItineraryProvider = ({ children }) => {
       return res.data;
     } catch (err) {
       console.error('Failed to fetch itinerary:', err);
+      addNotification(err.userMessage || 'Failed to load Flight Plan', 'error');
       return null;
     } finally {
       setLoadingMap(prev => ({ ...prev, [tripId]: false }));

@@ -8,11 +8,12 @@ import SettlementModal from '../components/budget/SettlementModal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { calculateOptimalSettlements } from '../utils/settlements';
 import { formatCurrency } from '../utils/formatters';
+import { getTripMemberName } from '../utils/memberLookup';
 
 const SettlementsPage = () => {
   const { id } = useParams();
   const { trips } = useTrip();
-  const { getExpenses, loadExpenses, getSettlements, addSettlement, deleteSettlement } = useContext(ExpenseContext);
+  const { getExpenses, loadExpenses, loadSettlements, getSettlements, addSettlement, deleteSettlement } = useContext(ExpenseContext);
   const trip = trips?.find(t => (t._id || t.id) === id);
   const expenses = getExpenses(id);
   const settlements = getSettlements(id);
@@ -23,8 +24,11 @@ const SettlementsPage = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
-    if (id) loadExpenses(id);
-  }, [id, loadExpenses]);
+    if (id) {
+      loadExpenses(id);
+      loadSettlements(id);
+    }
+  }, [id, loadExpenses, loadSettlements]);
 
   // All hooks BEFORE early returns (Rules of Hooks)
   const optimalTransactions = useMemo(() => calculateOptimalSettlements(tripMembers, expenses, settlements), [tripMembers, expenses, settlements]);
@@ -33,13 +37,7 @@ const SettlementsPage = () => {
   if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>;
 
   const handleSettleClick = (transaction = null) => { setDefaultTransaction(transaction); setIsModalOpen(true); };
-  const getMemberName = (mId) => {
-    if (!mId) return 'Unknown';
-    const match = tripMembers.find(m =>
-      (m.user || m._id || m.id)?.toString() === mId?.toString()
-    );
-    return match?.name || 'Unknown';
-  };
+  const getMemberName = (mId) => getTripMemberName(tripMembers, mId);
 
   return (
     <div className="page-container animate-fade-in">

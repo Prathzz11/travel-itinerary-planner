@@ -11,6 +11,7 @@ import TripNav from '../components/trip/TripNav';
 import ExpenseModal from '../components/budget/ExpenseModal';
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import { getTripMemberName, resolveMemberId } from '../utils/memberLookup';
 
 const CATEGORY_COLORS = { 'Accommodation': '#8b5cf6', 'Food': '#ec4899', 'Transport': '#3b82f6', 'Activities': '#10b981', 'Shopping': '#f59e0b', 'Other': '#64748b' };
 
@@ -18,7 +19,7 @@ const BudgetPage = () => {
   const { id } = useParams();
   const { trips, updateTrip, refreshTrips } = useTrip();
   const { user } = useAuth();
-  const { getExpenses, loadExpenses, getSettlements, addExpense, updateExpense, deleteExpense } = useContext(ExpenseContext);
+  const { getExpenses, loadExpenses, loadSettlements, getSettlements, addExpense, updateExpense, deleteExpense } = useContext(ExpenseContext);
   
   const trip = trips?.find(t => (t._id || t.id) === id);
   const expenses = getExpenses(id);
@@ -38,9 +39,9 @@ const BudgetPage = () => {
 
   useEffect(() => {
     if (id) {
-      loadExpenses(id).then(() => refreshTrips());
+      Promise.all([loadExpenses(id), loadSettlements(id)]).then(() => refreshTrips());
     }
-  }, [id, loadExpenses, refreshTrips]);
+  }, [id, loadExpenses, loadSettlements, refreshTrips]);
 
   // All hooks BEFORE early returns (Rules of Hooks)
   const categoryData = useMemo(() => {
@@ -57,21 +58,12 @@ const BudgetPage = () => {
     
     tripMembers.forEach(m => {
       const memberObj = { name: m.name, paid: 0, owes: 0 };
-      const ids = [
-        m._id?.toString(),
-        m.id?.toString(),
-        m.user?.toString(),
-        m.userId?.toString()
-      ].filter(Boolean);
-      
-      ids.forEach(id => memberMap.set(id, memberObj));
+      [m._id, m.id, m.user, m.userId].map(resolveMemberId).filter(Boolean).forEach(memberId => memberMap.set(memberId, memberObj));
     });
 
-    const getMember = (idOrObj) => {
-      if (!idOrObj) return null;
-      // Prioritize userId over memberId to correctly match actual trip members
-      const id = (idOrObj.userId || idOrObj.memberId || (typeof idOrObj === 'string' ? idOrObj : null))?.toString();
-      return memberMap.get(id);
+    const getMember = (value) => {
+      const id = resolveMemberId(value);
+      return id ? memberMap.get(id) : null;
     };
 
     expenses.forEach(exp => {
@@ -102,20 +94,7 @@ const BudgetPage = () => {
     })).sort((a, b) => b.net - a.net);
   }, [expenses, tripMembers, settlements]);
 
-  const getMemberName = useCallback((paidBy) => {
-    if (!paidBy) return 'Unknown';
-    if (typeof paidBy === 'object' && paidBy.name && paidBy.name !== 'Unknown') return paidBy.name;
-    
-    // If it's just an ID string or an object with "Unknown" name, find the member in tripMembers
-    const id = (paidBy.memberId || paidBy.userId || (typeof paidBy === 'string' ? paidBy : null))?.toString();
-    const member = tripMembers.find(m => 
-      m._id?.toString() === id || 
-      m.id === id || 
-      m.user?.toString() === id || 
-      m.userId?.toString() === id
-    );
-    return member?.name || 'Unknown';
-  }, [tripMembers]);
+  const getMemberName = useCallback((paidBy) => getTripMemberName(tripMembers, paidBy), [tripMembers]);
 
   const processedExpenses = useMemo(() => {
     let result = [...expenses];

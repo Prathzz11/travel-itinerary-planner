@@ -29,6 +29,7 @@ export const TripProvider = ({ children }) => {
       } catch (err) {
         console.error('Failed to load trips:', err);
         setTripsError('Failed to load trips');
+        addNotification(err.userMessage || 'Failed to load trips from Control Room', 'error');
       } finally {
         setTripsLoading(false);
       }

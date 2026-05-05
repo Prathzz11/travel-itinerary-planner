@@ -71,6 +71,15 @@ app.use((err, req, res, next) => {
 
 // ─── Start Server ─────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 TravelSync server running on http://localhost:${PORT}`);
+});
+
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Stop the existing process or run with a different PORT value.`);
+  } else {
+    console.error('Server error:', error);
+  }
+  process.exit(1);
 });

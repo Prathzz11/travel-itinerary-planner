@@ -1,32 +1,18 @@
+import { buildTripMemberBalanceLookup, resolveMemberId } from './memberLookup';
+
 /**
  * Calculates optimal settlement transactions to clear debts using a greedy algorithm.
- * 
+ *
+ * @param {Array} tripMembers - Array of member objects from TripContext
  * @param {Array} expenses - Array of expense objects from ExpenseContext
  * @param {Array} recordedSettlements - Array of recorded settlement objects from ExpenseContext
- * @param {Array} tripMembers - Array of member objects from TripContext
  * @returns {Array} Array of suggested transactions { from, to, amount }
  */
 export const calculateOptimalSettlements = (tripMembers, expenses, recordedSettlements) => {
-  // 1. Calculate net balances for each member using string IDs
-  const memberMap = new Map();
-  
-  tripMembers.forEach(m => {
-    const balanceObj = { id: (m._id || m.id)?.toString(), name: m.name, net: 0 };
-    const ids = [
-      m._id?.toString(),
-      m.id?.toString(),
-      m.user?.toString(),
-      m.userId?.toString()
-    ].filter(Boolean);
-    
-    ids.forEach(id => memberMap.set(id, balanceObj));
-  });
+  const memberMap = buildTripMemberBalanceLookup(tripMembers);
 
-  // Helper to get the correct balance object for any given ID (member or user)
-  const getBalance = (idOrObj) => {
-    if (!idOrObj) return null;
-    // userId takes priority over memberId — memberId may be a stale dummy ID
-    const id = (idOrObj.userId || idOrObj.memberId || (typeof idOrObj === 'string' ? idOrObj : null))?.toString();
+  const getBalance = (value) => {
+    const id = resolveMemberId(value);
     return id ? memberMap.get(id) : null;
   };
 

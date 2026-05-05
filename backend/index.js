@@ -39,9 +39,27 @@ const limiter = rateLimit({
 // Apply to all API routes
 app.use('/api', limiter);
 
+// ─── Logging ─────────────────────────────────────────────────────────
+const morgan = require('morgan');
+app.use(morgan('dev'));
+
 // ─── Middleware ──────────────────────────────────────────────────────
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175'
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -71,6 +89,15 @@ app.use((err, req, res, next) => {
 
 // ─── Start Server ─────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 TravelSync server running on http://localhost:${PORT}`);
+});
+
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Stop the existing process or run with a different PORT value.`);
+  } else {
+    console.error('Server error:', error);
+  }
+  process.exit(1);
 });

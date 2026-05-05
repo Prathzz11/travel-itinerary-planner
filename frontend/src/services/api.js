@@ -84,7 +84,7 @@ api.interceptors.response.use(
           userMessage = 'You do not have permission to perform this action.';
           break;
         case 404:
-          userMessage = 'The requested resource could not be found.';
+          userMessage = `The requested resource could not be found: ${error.config?.url || 'Unknown URL'}`;
           break;
         case 500:
         case 502:

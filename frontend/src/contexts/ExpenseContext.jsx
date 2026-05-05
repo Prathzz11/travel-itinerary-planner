@@ -6,6 +6,11 @@ import {
   updateExpense as apiUpdateExpense,
   deleteExpense as apiDeleteExpense
 } from '../services/expenseService';
+import {
+  getSettlements as apiGetSettlements,
+  createSettlement as apiCreateSettlement,
+  deleteSettlement as apiDeleteSettlement
+} from '../services/settlementService';
 
 export const ExpenseContext = createContext();
 
@@ -14,7 +19,6 @@ export const ExpenseProvider = ({ children }) => {
 
   // Cache: { [tripId]: expense[] }
   const [expenseCache, setExpenseCache] = useState({});
-  // Settlements remain local (derived calculation, not persisted separately)
   const [settlements, setSettlements] = useState({});
 
   const loadExpenses = useCallback(async (tripId) => {
@@ -24,12 +28,25 @@ export const ExpenseProvider = ({ children }) => {
       return res.data;
     } catch (err) {
       console.error('Failed to load expenses:', err);
+      addNotification(err.userMessage || 'Failed to load expense data', 'error');
       return [];
     }
   }, []);
 
   const getExpenses = useCallback((tripId) => expenseCache[tripId] || [], [expenseCache]);
   const getSettlements = useCallback((tripId) => settlements[tripId] || [], [settlements]);
+
+  const loadSettlements = useCallback(async (tripId) => {
+    try {
+      const res = await apiGetSettlements(tripId);
+      setSettlements(prev => ({ ...prev, [tripId]: res.data }));
+      return res.data;
+    } catch (err) {
+      console.error('Failed to load settlements:', err);
+      addNotification(err.userMessage || 'Failed to load settlement data', 'error');
+      return [];
+    }
+  }, [addNotification]);
 
   const addExpense = useCallback(async (tripId, expenseData) => {
     try {
@@ -77,33 +94,46 @@ export const ExpenseProvider = ({ children }) => {
     }
   }, [addNotification]);
 
-  const addSettlement = useCallback((tripId, settlementData) => {
-    setSettlements(prev => {
-      const tripSetts = prev[tripId] || [];
-      return {
+  const addSettlement = useCallback(async (tripId, settlementData) => {
+    try {
+      const res = await apiCreateSettlement(tripId, settlementData);
+      setSettlements(prev => ({
         ...prev,
-        [tripId]: [...tripSetts, { ...settlementData, id: Math.random().toString(36).substr(2, 9) }]
-      };
-    });
-  }, []);
+        [tripId]: [...(prev[tripId] || []), res.data]
+      }));
+      addNotification('Payment recorded', 'success');
+      return res.data;
+    } catch (err) {
+      addNotification(err.userMessage || 'Failed to record payment', 'error');
+      throw err;
+    }
+  }, [addNotification]);
 
-  const deleteSettlement = useCallback((tripId, settlementId) => {
-    setSettlements(prev => ({
-      ...prev,
-      [tripId]: (prev[tripId] || []).filter(s => s.id !== settlementId)
-    }));
-  }, []);
+  const deleteSettlement = useCallback(async (tripId, settlementId) => {
+    try {
+      await apiDeleteSettlement(tripId, settlementId);
+      setSettlements(prev => ({
+        ...prev,
+        [tripId]: (prev[tripId] || []).filter(s => (s._id || s.id) !== settlementId)
+      }));
+      addNotification('Payment removed', 'info');
+    } catch (err) {
+      addNotification(err.userMessage || 'Failed to delete payment', 'error');
+      throw err;
+    }
+  }, [addNotification]);
 
   const value = useMemo(() => ({
     getExpenses,
     loadExpenses,
+    loadSettlements,
     addExpense,
     updateExpense,
     deleteExpense,
     getSettlements,
     addSettlement,
     deleteSettlement
-  }), [getExpenses, loadExpenses, addExpense, updateExpense, deleteExpense, getSettlements, addSettlement, deleteSettlement]);
+  }), [getExpenses, loadExpenses, loadSettlements, addExpense, updateExpense, deleteExpense, getSettlements, addSettlement, deleteSettlement]);
 
   return (
     <ExpenseContext.Provider value={value}>

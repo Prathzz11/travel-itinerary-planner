@@ -4,6 +4,7 @@ const {
   getTrips, createTrip, getTripById, updateTrip, deleteTrip,
   addMember, removeMember, updateMemberRole, importTrip
 } = require('../controllers/tripController');
+const { getSettlements, createSettlement, deleteSettlement } = require('../controllers/settlementController');
 const { getItinerary, updateItinerary } = require('../controllers/itineraryController');
 const { getExpenses, createExpense, updateExpense, deleteExpense } = require('../controllers/expenseController');
 const { getBookings, createBooking, updateBooking, deleteBooking } = require('../controllers/bookingController');
@@ -40,5 +41,10 @@ router.get('/:id/bookings', getBookings);
 router.post('/:id/bookings', createBooking);
 router.put('/:id/bookings/:bookingId', updateBooking);
 router.delete('/:id/bookings/:bookingId', deleteBooking);
+
+// Settlements
+router.get('/:id/settlements', getSettlements);
+router.post('/:id/settlements', createSettlement);
+router.delete('/:id/settlements/:settlementId', deleteSettlement);
 
 module.exports = router;

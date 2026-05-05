@@ -16,6 +16,17 @@ const activityFeedSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 
+const settlementSchema = new mongoose.Schema({
+  payerId: { type: String, required: true },
+  payeeId: { type: String, required: true },
+  payerName: String,
+  payeeName: String,
+  amount: { type: Number, required: true, min: 0 },
+  date: { type: Date, default: Date.now },
+  method: { type: String, default: 'Cash' },
+  notes: { type: String, default: '' }
+}, { timestamps: true });
+
 const tripSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -42,6 +53,7 @@ const tripSchema = new mongoose.Schema({
   visibility: { type: String, enum: ['public', 'private'], default: 'private' },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   members: [memberSchema],
+  settlements: [settlementSchema],
   activityFeed: [activityFeedSchema],
   activitiesCount: { type: Number, default: 0 }
 }, { timestamps: true });

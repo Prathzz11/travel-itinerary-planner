@@ -1,4 +1,5 @@
 import React, { createContext, useState, useCallback, useMemo } from 'react';
+import { useNotification } from './NotificationContext';
 import {
   getBookings as apiGetBookings,
   createBooking as apiCreateBooking,
@@ -10,6 +11,7 @@ export const BookingContext = createContext();
 
 export const BookingProvider = ({ children }) => {
   // Cache: { [tripId]: booking[] }
+  const { addNotification } = useNotification();
   const [bookingCache, setBookingCache] = useState({});
 
   const loadBookings = useCallback(async (tripId) => {
@@ -19,6 +21,7 @@ export const BookingProvider = ({ children }) => {
       return res.data;
     } catch (err) {
       console.error('Failed to load bookings:', err);
+      addNotification(err.userMessage || 'Failed to load logistics data', 'error');
       return [];
     }
   }, []);

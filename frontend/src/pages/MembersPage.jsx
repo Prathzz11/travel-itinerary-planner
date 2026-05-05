@@ -46,8 +46,13 @@ const MembersPage = () => {
         <div className="card-body">
           <div className="row g-3">
             {trip.members?.map(member => {
-              const memberId = member._id || member.id || member.user;
-              const avatarUrl = member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=1e3a5f&color=38bdf8&size=96`;
+              // Ensure memberId is a string ID. If member.user is populated, take its _id.
+              const mUser = member.user;
+              const userId = (mUser && typeof mUser === 'object') ? (mUser._id || mUser.id) : mUser;
+              const memberId = member._id || member.id || userId;
+              
+              const avatarUrl = member.avatar || (mUser && typeof mUser === 'object' && mUser.avatar) || 
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=1e3a5f&color=38bdf8&size=96`;
               return (
                 <div key={memberId} className="col-md-6 col-lg-4">
                   <div className="card animate-fade-in">
