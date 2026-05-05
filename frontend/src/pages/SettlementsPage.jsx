@@ -1,12 +1,12 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Handshake, ArrowRight, Printer, CheckCircle, Trash2, Calendar, CreditCard, IndianRupee } from 'lucide-react';
+import { Handshake, ArrowRight, Printer, CheckCircle, Trash2, Calendar, CreditCard, IndianRupee, AlertTriangle } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { ExpenseContext } from '../contexts/ExpenseContext';
 import TripNav from '../components/trip/TripNav';
 import SettlementModal from '../components/budget/SettlementModal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
-import { calculateOptimalSettlements } from '../utils/settlements';
+import { calculateOptimalSettlements, calculateMemberBalances } from '../utils/settlements';
 import { formatCurrency } from '../utils/formatters';
 import { getTripMemberName } from '../utils/memberLookup';
 
@@ -32,12 +32,13 @@ const SettlementsPage = () => {
 
   // All hooks BEFORE early returns (Rules of Hooks)
   const optimalTransactions = useMemo(() => calculateOptimalSettlements(tripMembers, expenses, settlements), [tripMembers, expenses, settlements]);
+  const memberBalances = useMemo(() => calculateMemberBalances(tripMembers, expenses, settlements), [tripMembers, expenses, settlements]);
 
   // Early return AFTER all hooks
   if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>;
 
   const handleSettleClick = (transaction = null) => { setDefaultTransaction(transaction); setIsModalOpen(true); };
-  const getMemberName = (mId) => getTripMemberName(tripMembers, mId);
+  const getMemberName = (mId) => getTripMemberName(tripMembers, mId, expenses);
 
   return (
     <div className="page-container animate-fade-in">
@@ -58,11 +59,19 @@ const SettlementsPage = () => {
           <p className="text-muted small mb-4">The most efficient way to settle all debts, minimizing total transactions.</p>
 
           {optimalTransactions.length === 0 ? (
-            <div className="text-center py-5 rounded-3" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--color-success)' }}>
-              <CheckCircle size={48} color="#6ee7b7" className="mb-3" />
-              <h4 style={{ color: '#6ee7b7' }}>All settled up!</h4>
-              <p className="text-muted mb-0">No outstanding debts among trip members.</p>
-            </div>
+            memberBalances.some(b => Math.abs(b.net) > 0.01) ? (
+              <div className="text-center py-5 rounded-3 mb-5" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--color-danger)' }}>
+                <AlertTriangle size={48} color="var(--color-danger)" className="mb-3" />
+                <h4 style={{ color: 'var(--color-danger)' }}>Unbalanced Expenses Detected</h4>
+                <p className="text-muted mb-0">Some expenses were not properly split among members. Check the balances below.</p>
+              </div>
+            ) : (
+              <div className="text-center py-5 rounded-3 mb-5" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--color-success)' }}>
+                <CheckCircle size={48} color="#6ee7b7" className="mb-3" />
+                <h4 style={{ color: '#6ee7b7' }}>All settled up!</h4>
+                <p className="text-muted mb-0">No outstanding debts among trip members.</p>
+              </div>
+            )
           ) : (
             <div className="d-flex flex-column gap-3 mb-5">
               {optimalTransactions.map((tx, idx) => (
@@ -84,26 +93,52 @@ const SettlementsPage = () => {
             </div>
           )}
 
+          {/* Current Balances */}
+          <h5 className="mb-3">Current Balances</h5>
+          <div className="d-flex flex-column gap-2 mb-5">
+            {memberBalances.length === 0 ? (
+              <div className="text-center text-muted fst-italic p-4 rounded-2" style={{ background: 'rgba(0,0,0,0.15)' }}>No members found.</div>
+            ) : (
+              memberBalances.map(b => (
+                <div key={b.id} className="card border-start border-3" style={{ borderColor: b.net > 0 ? 'var(--color-success)' : b.net < 0 ? 'var(--color-danger)' : 'var(--color-border)' }}>
+                  <div className="card-body py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div className="fw-semibold">{b.name}</div>
+                    <div className="d-flex align-items-center gap-4 small">
+                      <div><span className="text-muted me-1">Paid:</span>{formatCurrency(b.paid)}</div>
+                      <div><span className="text-muted me-1">Owes:</span>{formatCurrency(b.owes)}</div>
+                      <div className="fw-bold fs-6" style={{ minWidth: 100, textAlign: 'right', color: b.net > 0 ? 'var(--color-success)' : b.net < 0 ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+                        Net: {b.net > 0 ? `+${formatCurrency(b.net)}` : b.net < 0 ? `-${formatCurrency(Math.abs(b.net))}` : '0.00'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
           {/* Settlement History */}
           <h5 className="mb-3">Settlement History</h5>
           {settlements.length === 0 ? (
             <div className="text-center text-muted fst-italic p-4 rounded-2" style={{ background: 'rgba(0,0,0,0.15)' }}>No payments recorded yet.</div>
           ) : (
             <div className="d-flex flex-column gap-2">
-              {[...settlements].sort((a, b) => new Date(b.date) - new Date(a.date)).map(s => (
-                <div key={s.id} className="card border-start border-3 border-success">
+              {[...settlements].sort((a, b) => new Date(b.date) - new Date(a.date)).map(s => {
+                const payerStr = (s.payerName && s.payerName !== 'Unknown') ? s.payerName : getMemberName(s.payerId);
+                const payeeStr = (s.payeeName && s.payeeName !== 'Unknown') ? s.payeeName : getMemberName(s.payeeId);
+                return (
+                <div key={s.id || s._id} className="card border-start border-3 border-success">
                   <div className="card-body d-flex justify-content-between align-items-center py-3">
                     <div>
-                      <div className="fw-semibold">{getMemberName(s.payerId)} paid {getMemberName(s.payeeId)}</div>
+                      <div className="fw-semibold">{payerStr} paid {payeeStr}</div>
                       <div className="text-muted small d-flex gap-3"><span className="d-inline-flex align-items-center gap-1"><Calendar size={12} /> {new Date(s.date).toLocaleDateString()}</span><span className="d-inline-flex align-items-center gap-1"><CreditCard size={12} /> {s.method}</span>{s.notes && <span>• {s.notes}</span>}</div>
                     </div>
                     <div className="d-flex align-items-center gap-3">
                       <span className="fw-bold fs-5" style={{ color: 'var(--color-success)' }}>{formatCurrency(s.amount)}</span>
-                      <button className="btn btn-link p-0 text-danger no-print" onClick={() => setConfirmDeleteId(s.id)} title="Delete" aria-label="Delete settlement"><Trash2 size={16} /></button>
+                      <button className="btn btn-link p-0 text-danger no-print" onClick={() => setConfirmDeleteId(s.id || s._id)} title="Delete" aria-label="Delete settlement"><Trash2 size={16} /></button>
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>

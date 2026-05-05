@@ -21,7 +21,15 @@ const SettlementModal = ({ isOpen, onClose, onSave, tripMembers, defaultTransact
     e.preventDefault();
     if (form.payerId === form.payeeId) return alert("Payer and Payee cannot be the same person.");
     if (form.amount <= 0) return alert("Amount must be greater than zero.");
-    onSave(form);
+    
+    const payer = tripMembers?.find(m => (m.user || m._id || m.id)?.toString() === form.payerId);
+    const payee = tripMembers?.find(m => (m.user || m._id || m.id)?.toString() === form.payeeId);
+    
+    onSave({
+      ...form,
+      payerName: payer?.name || 'Unknown',
+      payeeName: payee?.name || 'Unknown'
+    });
   };
 
   return (

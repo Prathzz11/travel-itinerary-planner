@@ -1,5 +1,51 @@
 import { buildTripMemberBalanceLookup, resolveMemberId } from './memberLookup';
 
+export const calculateMemberBalances = (tripMembers, expenses, recordedSettlements) => {
+  const memberMap = buildTripMemberBalanceLookup(tripMembers);
+
+  const getBalance = (value) => {
+    const id = resolveMemberId(value);
+    let balance = id ? memberMap.get(id) : null;
+    
+    // Fallback to name matching if id doesn't match
+    if (!balance && value && typeof value === 'object' && value.name && value.name !== 'Unknown') {
+      balance = memberMap.get(value.name.toLowerCase());
+    }
+    
+    return balance || null;
+  };
+
+  expenses.forEach(exp => {
+    const payerBalance = getBalance(exp.paidBy);
+    if (payerBalance) payerBalance.paid += Number(exp.amount || 0);
+    
+    (exp.splitAmong || []).forEach(split => {
+      const splitBalance = getBalance(split);
+      if (splitBalance) splitBalance.owes += Number(split.share || 0);
+    });
+  });
+
+  recordedSettlements.forEach(settlement => {
+    // Pass an object with name so the fallback can work if ID fails
+    const payerBalance = getBalance({ id: settlement.payerId, name: settlement.payerName });
+    const payeeBalance = getBalance({ id: settlement.payeeId, name: settlement.payeeName });
+    if (payerBalance) payerBalance.owes -= Number(settlement.amount || 0);
+    if (payeeBalance) payeeBalance.paid -= Number(settlement.amount || 0);
+  });
+
+  const uniqueBalances = Array.from(new Set(memberMap.values()));
+  uniqueBalances.forEach(b => {
+    // Cancel out matching paid and owes to simplify the display
+    // e.g. if someone paid 16600 but their share is 4150, they effectively paid 12450 for others and owe 0.
+    const min = Math.min(b.paid, b.owes);
+    b.paid -= min;
+    b.owes -= min;
+    b.net = b.paid - b.owes;
+  });
+
+  return uniqueBalances.sort((a, b) => b.net - a.net);
+};
+
 /**
  * Calculates optimal settlement transactions to clear debts using a greedy algorithm.
  *
@@ -9,34 +55,7 @@ import { buildTripMemberBalanceLookup, resolveMemberId } from './memberLookup';
  * @returns {Array} Array of suggested transactions { from, to, amount }
  */
 export const calculateOptimalSettlements = (tripMembers, expenses, recordedSettlements) => {
-  const memberMap = buildTripMemberBalanceLookup(tripMembers);
-
-  const getBalance = (value) => {
-    const id = resolveMemberId(value);
-    return id ? memberMap.get(id) : null;
-  };
-
-  // Add what they paid, subtract what they owe (from expenses)
-  expenses.forEach(exp => {
-    const payerBalance = getBalance(exp.paidBy);
-    if (payerBalance) payerBalance.net += Number(exp.amount || 0);
-    
-    (exp.splitAmong || []).forEach(split => {
-      const splitBalance = getBalance(split);
-      if (splitBalance) splitBalance.net -= Number(split.share || 0);
-    });
-  });
-
-  // Factor in recorded settlements
-  recordedSettlements.forEach(settlement => {
-    const payerBalance = getBalance(settlement.payerId);
-    const payeeBalance = getBalance(settlement.payeeId);
-    if (payerBalance) payerBalance.net += Number(settlement.amount || 0);
-    if (payeeBalance) payeeBalance.net -= Number(settlement.amount || 0);
-  });
-
-  // Unique balances for calculation
-  const uniqueBalances = Array.from(new Set(memberMap.values()));
+  const uniqueBalances = calculateMemberBalances(tripMembers, expenses, recordedSettlements);
 
   // 2. Separate into debtors (net < 0) and creditors (net > 0)
   const debtors = [];

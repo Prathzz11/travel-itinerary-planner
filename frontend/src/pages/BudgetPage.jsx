@@ -12,6 +12,7 @@ import ExpenseModal from '../components/budget/ExpenseModal';
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { getTripMemberName, resolveMemberId } from '../utils/memberLookup';
+import { calculateMemberBalances } from '../utils/settlements';
 
 const CATEGORY_COLORS = { 'Accommodation': '#8b5cf6', 'Food': '#ec4899', 'Transport': '#3b82f6', 'Activities': '#10b981', 'Shopping': '#f59e0b', 'Other': '#64748b' };
 
@@ -53,48 +54,11 @@ const BudgetPage = () => {
   const highestExpense = useMemo(() => expenses.length === 0 ? null : expenses.reduce((max, exp) => exp.amount > max.amount ? exp : max, expenses[0]), [expenses]);
 
   const balances = useMemo(() => {
-    // Create a single lookup table for ALL possible IDs for a member
-    const memberMap = new Map();
-    
-    tripMembers.forEach(m => {
-      const memberObj = { name: m.name, paid: 0, owes: 0 };
-      [m._id, m.id, m.user, m.userId].map(resolveMemberId).filter(Boolean).forEach(memberId => memberMap.set(memberId, memberObj));
-    });
+    if (!tripMembers || tripMembers.length === 0) return [];
+    return calculateMemberBalances(tripMembers, expenses, settlements).sort((a, b) => b.net - a.net);
+  }, [tripMembers, expenses, settlements]);
 
-    const getMember = (value) => {
-      const id = resolveMemberId(value);
-      return id ? memberMap.get(id) : null;
-    };
-
-    expenses.forEach(exp => {
-      const payer = getMember(exp.paidBy);
-      if (payer) payer.paid += Number(exp.amount || 0);
-      
-      (exp.splitAmong || []).forEach(split => {
-        const debtor = getMember(split);
-        if (debtor) debtor.owes += Number(split.share || 0);
-      });
-    });
-
-    // Factor in recorded settlements
-    settlements.forEach(settlement => {
-      const payer = getMember(settlement.payerId);
-      const payee = getMember(settlement.payeeId);
-      
-      // If A pays B, A's paid amount increases (they contributed more to the group's balance)
-      // and B's owes amount increases (they received money, so they owe it back conceptually)
-      if (payer) payer.paid += Number(settlement.amount || 0);
-      if (payee) payee.owes += Number(settlement.amount || 0);
-    });
-
-    // Get unique member objects from the map values
-    return Array.from(new Set(memberMap.values())).map(m => ({
-      ...m,
-      net: m.paid - m.owes
-    })).sort((a, b) => b.net - a.net);
-  }, [expenses, tripMembers, settlements]);
-
-  const getMemberName = useCallback((paidBy) => getTripMemberName(tripMembers, paidBy), [tripMembers]);
+  const getMemberName = useCallback((paidBy) => getTripMemberName(tripMembers, paidBy, expenses), [tripMembers, expenses]);
 
   const processedExpenses = useMemo(() => {
     let result = [...expenses];
@@ -239,7 +203,7 @@ const BudgetPage = () => {
                   <div className="card-body py-3 d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center gap-3">
                       <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 40, height: 40, background: EXPENSE_CATEGORIES[exp.category]?.bgColor || 'rgba(100,116,139,0.2)', fontSize: '1.2rem' }}>{EXPENSE_CATEGORIES[exp.category]?.emoji || '📌'}</div>
-                      <div><div className="fw-bold">{exp.description}</div><div className="text-muted small d-flex align-items-center gap-1"><Calendar size={12} /> {new Date(exp.date).toLocaleDateString()} • Paid by <strong>{getMemberName(exp.paidBy)}</strong></div></div>
+                      <div><div className="fw-bold">{exp.description}</div><div className="text-muted small d-flex align-items-center gap-1"><Calendar size={12} /> {new Date(exp.date).toLocaleDateString()} • Paid by <strong>{(exp.paidBy?.name && exp.paidBy.name !== 'Unknown') ? exp.paidBy.name : getMemberName(exp.paidBy)}</strong></div></div>
                     </div>
                     <div className="d-flex align-items-center gap-3"><span className="fw-bold fs-5">₹{exp.amount.toFixed(2)}</span>{isExpanded ? <ChevronUp size={18} className="text-muted" /> : <ChevronDown size={18} className="text-muted" />}</div>
                   </div>
