@@ -19,3 +19,4 @@ export const updateMe = async (data) => {
 export const logViewedTemplate = async (id) => {
   return api.post(`/auth/me/viewed/${id}`);
 };
+export const changePassword = (data) => api.put('/auth/me/password', data);

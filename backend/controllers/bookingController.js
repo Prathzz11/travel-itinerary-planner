@@ -1,3 +1,4 @@
+const { controllerError } = require('../utils/controllerError');
 const Booking = require('../models/Booking');
 
 // @desc    Get all bookings for a trip
@@ -8,7 +9,7 @@ const getBookings = async (req, res) => {
     const bookings = await Booking.find({ trip: req.params.id }).sort({ createdAt: -1 });
     res.json(bookings);
   } catch (error) {
-    res.status(500).json({ message: 'Server error fetching bookings' });
+    controllerError(res, error, 'Server error fetching bookings');
   }
 };
 
@@ -37,7 +38,7 @@ const createBooking = async (req, res) => {
     res.status(201).json(booking);
   } catch (error) {
     console.error('Error creating booking:', error);
-    res.status(500).json({ message: 'Server error creating booking' });
+    controllerError(res, error, 'Server error creating booking');
   }
 };
 
@@ -46,16 +47,18 @@ const createBooking = async (req, res) => {
 // @access  Protected
 const updateBooking = async (req, res) => {
   try {
-    const booking = await Booking.findByIdAndUpdate(
-      req.params.bookingId,
-      req.body,
+    const fields = ['type', 'title', 'confirmationNumber', 'provider', 'status', 'checkIn', 'checkOut', 'amount', 'currency', 'notes', 'attachmentUrl'];
+    const updates = Object.fromEntries(fields.filter(field => req.body[field] !== undefined).map(field => [field, req.body[field]]));
+    const booking = await Booking.findOneAndUpdate(
+      { _id: req.params.bookingId, trip: req.params.id },
+      updates,
       { new: true, runValidators: true }
     );
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
     res.json(booking);
   } catch (error) {
     console.error('Error updating booking:', error);
-    res.status(500).json({ message: 'Server error updating booking' });
+    controllerError(res, error, 'Server error updating booking');
   }
 };
 
@@ -64,11 +67,11 @@ const updateBooking = async (req, res) => {
 // @access  Protected
 const deleteBooking = async (req, res) => {
   try {
-    const booking = await Booking.findByIdAndDelete(req.params.bookingId);
+    const booking = await Booking.findOneAndDelete({ _id: req.params.bookingId, trip: req.params.id });
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
     res.json({ message: 'Booking deleted' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error deleting booking' });
+    controllerError(res, error, 'Server error deleting booking');
   }
 };
 

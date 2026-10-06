@@ -17,21 +17,23 @@ const expenseSchema = new mongoose.Schema({
     min: [0, 'Amount cannot be negative']
   },
   currency: { type: String, default: 'INR' },
+  splitType: { type: String, enum: ['equal', 'custom'], default: 'equal' },
   category: {
     type: String,
     enum: ['Food', 'Transport', 'Accommodation', 'Activities', 'Shopping', 'Other'],
     default: 'Other'
   },
   paidBy: {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    userId: { type: mongoose.Schema.Types.ObjectId }, // Trip member ID; legacy records may contain a User ID
     name: String
   },
   splitAmong: [{
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    userId: { type: mongoose.Schema.Types.ObjectId }, // Trip member ID; legacy records may contain a User ID
     name: String,
     share: Number // amount owed
   }],
   date: { type: Date, default: Date.now },
+  notes: { type: String, default: '' },
   receipt: { type: String, default: '' } // URL to receipt image
 }, { timestamps: true });
 

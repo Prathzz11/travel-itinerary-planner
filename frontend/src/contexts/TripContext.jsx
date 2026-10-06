@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { isEditing } from '../utils/autoRefresh';
+import React, { createContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { fetchTrips, createTrip as apiCreateTrip, updateTrip as apiUpdateTrip, deleteTrip as apiDeleteTrip, addMember as apiAddMember, removeMember as apiRemoveMember, updateMemberRole as apiUpdateMemberRole, importTrip as apiImportTrip } from '../services/tripService';
 import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
@@ -9,6 +10,7 @@ export const TripProvider = ({ children }) => {
   const { user } = useAuth();
   const { addNotification } = useNotification();
 
+  const readVersion = useRef(0);
   const [trips, setTrips] = useState([]);
   const [tripsLoading, setTripsLoading] = useState(false);
   const [tripsError, setTripsError] = useState(null);
@@ -20,12 +22,14 @@ export const TripProvider = ({ children }) => {
       return;
     }
 
+    let active = true;
     const loadTrips = async () => {
+      const version = ++readVersion.current;
       setTripsLoading(true);
       setTripsError(null);
       try {
         const res = await fetchTrips();
-        setTrips(res.data);
+        if (active && readVersion.current === version) setTrips(res.data);
       } catch (err) {
         console.error('Failed to load trips:', err);
         setTripsError('Failed to load trips');
@@ -36,13 +40,17 @@ export const TripProvider = ({ children }) => {
     };
 
     loadTrips();
-  }, [user]);
+    return () => { active = false; };
+  }, [user, addNotification]);
 
-  const refreshTrips = useCallback(async () => {
+  const refreshTrips = useCallback(async ({ silent = false } = {}) => {
     if (!user) return;
+    const version = ++readVersion.current;
     try {
       const res = await fetchTrips();
+      if (readVersion.current !== version || (silent && isEditing(document))) return;
       setTrips(res.data);
+      return res.data;
     } catch (err) {
       console.error('Failed to refresh trips:', err);
     }
@@ -51,6 +59,7 @@ export const TripProvider = ({ children }) => {
   const addTrip = useCallback(async (tripData) => {
     try {
       const res = await apiCreateTrip(tripData);
+      readVersion.current++;
       setTrips(prev => [res.data, ...prev]);
       addNotification('Trip created successfully!', 'success');
       return res.data;
@@ -63,6 +72,7 @@ export const TripProvider = ({ children }) => {
   const updateTrip = useCallback(async (id, updatedData) => {
     try {
       const res = await apiUpdateTrip(id, updatedData);
+      readVersion.current++;
       setTrips(prev => prev.map(t => t._id === id || t.id === id ? res.data : t));
       addNotification('Trip updated', 'success');
       return res.data;
@@ -75,6 +85,7 @@ export const TripProvider = ({ children }) => {
   const deleteTrip = useCallback(async (id) => {
     try {
       await apiDeleteTrip(id);
+      readVersion.current++;
       setTrips(prev => prev.filter(t => t._id !== id && t.id !== id));
       addNotification('Trip deleted successfully', 'success');
     } catch (err) {
@@ -86,6 +97,7 @@ export const TripProvider = ({ children }) => {
   const addMember = useCallback(async (tripId, memberData) => {
     try {
       const res = await apiAddMember(tripId, memberData);
+      readVersion.current++;
       setTrips(prev => prev.map(t => (t._id === tripId || t.id === tripId) ? res.data : t));
       addNotification(`${memberData.name} added to trip`, 'success');
     } catch (err) {
@@ -97,6 +109,7 @@ export const TripProvider = ({ children }) => {
   const removeMember = useCallback(async (tripId, memberId) => {
     try {
       const res = await apiRemoveMember(tripId, memberId);
+      readVersion.current++;
       setTrips(prev => prev.map(t => (t._id === tripId || t.id === tripId) ? res.data : t));
       addNotification('Member removed', 'info');
     } catch (err) {
@@ -108,6 +121,7 @@ export const TripProvider = ({ children }) => {
   const updateMemberRole = useCallback(async (tripId, memberId, newRole) => {
     try {
       const res = await apiUpdateMemberRole(tripId, memberId, newRole);
+      readVersion.current++;
       setTrips(prev => prev.map(t => (t._id === tripId || t.id === tripId) ? res.data : t));
       addNotification('Member role updated', 'success');
     } catch (err) {
@@ -116,17 +130,10 @@ export const TripProvider = ({ children }) => {
     }
   }, [addNotification]);
 
-  // Kept for socket simulation compatibility
-  const toggleMemberPresence = useCallback((memberId, isOnline) => {
-    setTrips(prev => prev.map(trip => ({
-      ...trip,
-      members: trip.members.map(m => m._id === memberId || m.id === memberId ? { ...m, online: isOnline } : m)
-    })));
-  }, []);
-
   const importTrip = useCallback(async (tripData) => {
     try {
       const res = await apiImportTrip(tripData);
+      readVersion.current++;
       setTrips(prev => [res.data, ...prev]);
       addNotification('Trip imported successfully!', 'success');
       return res.data;
@@ -148,9 +155,8 @@ export const TripProvider = ({ children }) => {
     addMember,
     removeMember,
     updateMemberRole,
-    toggleMemberPresence,
     refreshTrips
-  }), [trips, tripsLoading, tripsError, addTrip, importTrip, updateTrip, deleteTrip, addMember, removeMember, updateMemberRole, toggleMemberPresence, refreshTrips]);
+  }), [trips, tripsLoading, tripsError, addTrip, importTrip, updateTrip, deleteTrip, addMember, removeMember, updateMemberRole, refreshTrips]);
 
   return (
     <TripContext.Provider value={value}>

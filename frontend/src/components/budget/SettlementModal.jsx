@@ -1,71 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { X, Handshake, IndianRupee, Calendar, CreditCard, AlignLeft } from 'lucide-react';
+import React, { useState } from 'react';
 
-const METHODS = ['Cash', 'Venmo', 'PayPal', 'Zelle', 'Bank Transfer', 'Other'];
+const memberId = m => String(m?._id || m?.id || '');
+const localDate = value => { const d = value ? new Date(value) : new Date(); if (!Number.isFinite(+d)) return ''; d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,16); };
 
-const SettlementModal = ({ isOpen, onClose, onSave, tripMembers, defaultTransaction = null }) => {
-  const [form, setForm] = useState({ payerId: '', payeeId: '', amount: 0, date: new Date().toISOString().slice(0, 16), method: 'Cash', notes: '' });
-
-  useEffect(() => {
-    const getId = (m) => (m?.user || m?._id || m?.id)?.toString() || '';
-    if (defaultTransaction) {
-      setForm({ payerId: defaultTransaction.from.id, payeeId: defaultTransaction.to.id, amount: defaultTransaction.amount, date: new Date().toISOString().slice(0, 16), method: 'Venmo', notes: '' });
-    } else {
-      setForm({ payerId: getId(tripMembers?.[0]), payeeId: getId(tripMembers?.[1]), amount: 0, date: new Date().toISOString().slice(0, 16), method: 'Cash', notes: '' });
-    }
-  }, [defaultTransaction, isOpen, tripMembers]);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = (e) => {
+// Mounted only while open: each payment starts with a fresh, stable form.
+const SettlementModal = ({ onClose, onSave, tripMembers, currency, defaultTransaction, initialData }) => {
+  const [form, setForm] = useState(() => {
+    const canonical = id => memberId(tripMembers.find(m=>[memberId(m),String(m.user || '')].includes(String(id))));
+    return initialData ? {payerId:canonical(initialData.payerId),payeeId:canonical(initialData.payeeId),amount:initialData.amount,date:localDate(initialData.date),method:initialData.method || '',notes:initialData.notes || ''} : {payerId:defaultTransaction?.from.id || memberId(tripMembers[0]),payeeId:defaultTransaction?.to.id || memberId(tripMembers[1]),amount:defaultTransaction?.amount || '',date:localDate(),method:'',notes:''};
+  });
+  const [requestId] = useState(() => crypto.randomUUID());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const update = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const submit = async e => {
     e.preventDefault();
-    if (form.payerId === form.payeeId) return alert("Payer and Payee cannot be the same person.");
-    if (form.amount <= 0) return alert("Amount must be greater than zero.");
-    
-    const payer = tripMembers?.find(m => (m.user || m._id || m.id)?.toString() === form.payerId);
-    const payee = tripMembers?.find(m => (m.user || m._id || m.id)?.toString() === form.payeeId);
-    
-    onSave({
-      ...form,
-      payerName: payer?.name || 'Unknown',
-      payeeName: payee?.name || 'Unknown'
-    });
+    if (saving) return;
+    if (!form.payerId || !form.payeeId || form.payerId === form.payeeId) { setError('Choose two different members.'); return; }
+    if (!Number.isFinite(Number(form.amount)) || Number(form.amount) <= 0) { setError('Enter an amount greater than zero.'); return; }
+    setSaving(true); setError('');
+    try { await onSave({ ...form, requestId, expectedUpdatedAt: initialData?.updatedAt, amount: Number(form.amount), date: new Date(form.date).toISOString() }); }
+    catch (err) { setError(err.userMessage || err.message || 'Could not record payment.'); }
+    finally { setSaving(false); }
   };
-
-  return (
-    <>
-      <div className="modal-backdrop show" style={{ backdropFilter: 'blur(4px)' }} onClick={onClose}></div>
-      <div className="modal d-block" tabIndex="-1">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content animate-scale-in">
-            <div className="modal-header">
-              <h5 className="modal-title d-flex align-items-center gap-2"><Handshake size={20} color="var(--color-primary)" /> Record a Payment</h5>
-              <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
-            </div>
-            <div className="modal-body">
-              <form id="settlementForm" onSubmit={handleSubmit}>
-                <div className="row g-3 mb-3 align-items-end">
-                  <div className="col-5"><label className="form-label text-muted">Who Paid</label><select className="form-select" value={form.payerId} onChange={e => setForm({...form, payerId: e.target.value})} required>{tripMembers?.map(m => { const mId = (m.user || m._id || m.id)?.toString(); return <option key={mId} value={mId}>{m.name}</option>; })}</select></div>
-                  <div className="col-2 text-center pb-2" style={{ fontSize: '1.5rem', color: 'var(--color-text-muted)' }}>&rarr;</div>
-                  <div className="col-5"><label className="form-label text-muted">Who Received</label><select className="form-select" value={form.payeeId} onChange={e => setForm({...form, payeeId: e.target.value})} required>{tripMembers?.map(m => { const mId = (m.user || m._id || m.id)?.toString(); return <option key={mId} value={mId}>{m.name}</option>; })}</select></div>
-                </div>
-                <div className="row g-3 mb-3">
-                  <div className="col-6"><label className="form-label text-muted">Amount</label><input type="number" step="0.01" className="form-control" style={{ fontSize: '1.2rem', fontWeight: 'bold' }} value={form.amount || ''} onChange={e => setForm({...form, amount: Number(e.target.value)})} required /></div>
-                  <div className="col-6"><label className="form-label text-muted">Date</label><input type="datetime-local" className="form-control" value={form.date} onChange={e => setForm({...form, date: e.target.value})} required style={{ colorScheme: 'dark' }} /></div>
-                </div>
-                <div className="mb-3"><label className="form-label text-muted">Payment Method</label><select className="form-select" value={form.method} onChange={e => setForm({...form, method: e.target.value})}>{METHODS.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                <div className="mb-3"><label className="form-label text-muted">Notes</label><input type="text" className="form-control" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Optional..." /></div>
-              </form>
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
-              <button type="submit" form="settlementForm" className="btn btn-primary">Save Payment</button>
-            </div>
+  return <>
+    <div className="modal-backdrop show" />
+    <div className="modal d-block" role="dialog" aria-modal="true" aria-labelledby="payment-title">
+      <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div className="modal-content">
+        <div className="modal-header"><h2 id="payment-title" className="modal-title fs-5">{initialData ? 'Edit payment' : 'Record payment'}</h2><button aria-label="Close" className="btn-close btn-close-white" disabled={saving} onClick={onClose} /></div>
+        <form onSubmit={submit}>
+          <div className="modal-body">
+            <p className="text-muted small">Record money already paid. This does not transfer money.</p>
+            {error && <div role="alert" className="alert alert-danger">{error}</div>}
+            <label className="form-label" htmlFor="payment-from">Who paid?</label>
+            <select id="payment-from" name="payerId" className="form-select mb-3" value={form.payerId} onChange={update} required disabled={saving}><option value="">Choose a member</option>{tripMembers.map(m => <option key={memberId(m)} value={memberId(m)}>{m.name}</option>)}</select>
+            <label className="form-label" htmlFor="payment-to">Who received it?</label>
+            <select id="payment-to" name="payeeId" className="form-select mb-3" value={form.payeeId} onChange={update} required disabled={saving}><option value="">Choose a member</option>{tripMembers.filter(m => memberId(m) !== form.payerId).map(m => <option key={memberId(m)} value={memberId(m)}>{m.name}</option>)}</select>
+            <label className="form-label" htmlFor="payment-amount">Amount ({currency})</label>
+            <input id="payment-amount" name="amount" className="form-control mb-3" type="number" min="0.01" step="0.01" value={form.amount} onChange={update} required disabled={saving} />
+            <details><summary className="text-muted mb-3">Date, method or note (optional)</summary>
+              <label className="form-label" htmlFor="payment-date">Date</label><input id="payment-date" name="date" className="form-control mb-3" type="datetime-local" value={form.date} onChange={update} required disabled={saving} />
+              <label className="form-label" htmlFor="payment-method">Method</label><select id="payment-method" name="method" className="form-select mb-3" value={form.method} onChange={update} disabled={saving}>{[...new Set(['','Cash','UPI','Bank Transfer','Other',initialData?.method].filter(m=>m!==undefined))].map(m => <option key={m} value={m}>{m || 'Not specified'}</option>)}</select>
+              <label className="form-label" htmlFor="payment-note">Note</label><input id="payment-note" name="notes" className="form-control" value={form.notes} onChange={update} disabled={saving} />
+            </details>
           </div>
-        </div>
-      </div>
-    </>
-  );
+          <div className="modal-footer"><button type="button" className="btn btn-outline-secondary" disabled={saving} onClick={onClose}>Cancel</button><button className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : initialData ? 'Save payment' : 'Record payment'}</button></div>
+        </form>
+      </div></div>
+    </div>
+  </>;
 };
-
 export default SettlementModal;

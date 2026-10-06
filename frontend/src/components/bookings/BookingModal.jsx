@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Building, Plane } from 'lucide-react';
 
+const localDateTime = value => {
+  if (!value) return '';
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+
 const BookingModal = ({ isOpen, onClose, onSave, type, initialData = null }) => {
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [form, setForm] = useState({});
 
   useEffect(() => {
     if (initialData) {
       setForm({
         ...initialData,
-        checkIn: initialData.checkIn ? new Date(initialData.checkIn).toISOString().slice(0, 16) : '',
-        checkOut: initialData.checkOut ? new Date(initialData.checkOut).toISOString().slice(0, 16) : ''
+        checkIn: localDateTime(initialData.checkIn),
+        checkOut: localDateTime(initialData.checkOut)
       });
     } else {
       setForm({
@@ -29,9 +37,15 @@ const BookingModal = ({ isOpen, onClose, onSave, type, initialData = null }) => 
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(form);
+    if (saving) return;
+    setSaving(true); setSaveError('');
+    try {
+    if (new Date(form.checkOut) < new Date(form.checkIn)) throw new Error('End time must be after start time');
+    await onSave({ ...form, checkIn: new Date(form.checkIn).toISOString(), checkOut: new Date(form.checkOut).toISOString() });
+    } catch (error) { setSaveError(error.userMessage || error.message || 'Could not save'); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -48,7 +62,10 @@ const BookingModal = ({ isOpen, onClose, onSave, type, initialData = null }) => 
               <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
             </div>
             <div className="modal-body">
+              {saveError && <div className="alert alert-danger" role="alert">{saveError}</div>}
               <form id="bookingForm" onSubmit={handleSubmit}>
+                <label className="form-label w-100">Booking type<select aria-label="Booking type" className="form-select" value={form.type || type} onChange={e => setForm({ ...form, type: e.target.value })}>{['hotel','flight','car','train','bus','activity','other'].map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+                <label className="form-label w-100">Status<select aria-label="Booking status" className="form-select" value={form.status || 'pending'} onChange={e => setForm({ ...form, status: e.target.value })}>{['pending','confirmed','cancelled'].map(value => <option key={value}>{value}</option>)}</select></label>
                 <div className="mb-3">
                   <label className="form-label text-muted">
                     {type === 'hotel' ? 'Hotel Name' : 'Flight Title'} (e.g. {type === 'hotel' ? 'Hilton Manali' : 'IndiGo Delhi → Manali'})
@@ -77,7 +94,7 @@ const BookingModal = ({ isOpen, onClose, onSave, type, initialData = null }) => 
                   <div className="col-md-6">
                     <label className="form-label text-muted">Total Cost</label>
                     <div className="input-group">
-                      <input type="number" className="form-control" value={form.amount || 0} onChange={e => setForm({...form, amount: Number(e.target.value)})} />
+                      <input type="number" min="0" step="0.01" className="form-control" value={form.amount || 0} onChange={e => setForm({...form, amount: Number(e.target.value)})} />
                       <select className="form-select" style={{ maxWidth: 90 }} value={form.currency || 'INR'} onChange={e => setForm({...form, currency: e.target.value})}>
                         <option value="INR">INR</option>
                         <option value="USD">USD</option>
@@ -102,7 +119,7 @@ const BookingModal = ({ isOpen, onClose, onSave, type, initialData = null }) => 
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
-              <button type="submit" form="bookingForm" className="btn btn-primary">
+              <button disabled={saving} type="submit" form="bookingForm" className="btn btn-primary">
                 {initialData ? 'Save Changes' : `Add ${type === 'hotel' ? 'Hotel' : 'Flight'}`}
               </button>
             </div>

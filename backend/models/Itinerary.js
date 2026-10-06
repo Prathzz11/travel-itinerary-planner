@@ -11,7 +11,12 @@ const activitySchema = new mongoose.Schema({
   location: { type: String, default: '' },
   notes: { type: String, default: '' },
   cost: { type: Number, default: 0 },
-  order: { type: Number, default: 0 }
+  currency: { type: String, default: 'INR' },
+  order: { type: Number, default: 0 },
+  completed: { type: Boolean, default: false },
+  lat: Number,
+  lng: Number,
+  images: [String]
 }, { _id: true });
 
 const daySchema = new mongoose.Schema({

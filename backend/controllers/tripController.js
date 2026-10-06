@@ -1,4 +1,10 @@
+const { withSpending } = require('../utils/tripSpending');
+const { controllerError } = require('../utils/controllerError');
 const Trip = require('../models/Trip');
+const { syncTemplate } = require('../utils/syncTemplate');
+const User = require('../models/User');
+const { importDays } = require('../utils/importDays');
+const { tripDays } = require('../utils/tripDays');
 
 // @desc    Get all trips for logged-in user
 // @route   GET /api/trips
@@ -12,10 +18,10 @@ const getTrips = async (req, res) => {
       ]
     }).sort({ updatedAt: -1 });
 
-    res.json(trips);
+    res.json(await withSpending(trips));
   } catch (error) {
     console.error('Get trips error:', error);
-    res.status(500).json({ message: 'Server error fetching trips' });
+    controllerError(res, error, 'Server error fetching trips');
   }
 };
 
@@ -53,10 +59,11 @@ const createTrip = async (req, res) => {
       }]
     });
 
+    await syncTemplate(trip);
     res.status(201).json(trip);
   } catch (error) {
     console.error('Create trip error:', error);
-    res.status(500).json({ message: 'Server error creating trip' });
+    controllerError(res, error, 'Server error creating trip');
   }
 };
 
@@ -74,9 +81,9 @@ const getTripById = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    res.json(trip);
+    res.json((await withSpending([trip]))[0]);
   } catch (error) {
-    res.status(500).json({ message: 'Server error fetching trip' });
+    controllerError(res, error, 'Server error fetching trip');
   }
 };
 
@@ -95,7 +102,16 @@ const updateTrip = async (req, res) => {
       return res.status(403).json({ message: 'Only admins can update the trip' });
     }
 
-    const allowedFields = ['title', 'destination', 'startDate', 'endDate', 'image', 'budget', 'spent', 'currency', 'visibility', 'status'];
+    const Itinerary = require('../models/Itinerary');
+    const itinerary = await Itinerary.findOne({ trip: trip._id });
+    let days;
+    if (req.body.startDate !== undefined || req.body.endDate !== undefined) {
+      days = tripDays(req.body.startDate || trip.startDate, req.body.endDate || trip.endDate, itinerary?.days || []);
+    }
+
+    if (req.body.currency !== undefined && req.body.currency !== trip.currency) return res.status(400).json({message: 'Trip currency is fixed after creation. Create a new trip to use a different currency.'});
+
+    const allowedFields = ['title', 'destination', 'startDate', 'endDate', 'image', 'budget', 'currency', 'visibility', 'status'];
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) trip[field] = req.body[field];
     });
@@ -107,9 +123,11 @@ const updateTrip = async (req, res) => {
     });
 
     const updated = await trip.save();
-    res.json(updated);
+    if (itinerary && days) { itinerary.days = days; await itinerary.save(); }
+    await syncTemplate(updated);
+    res.json((await withSpending([updated]))[0]);
   } catch (error) {
-    res.status(500).json({ message: 'Server error updating trip' });
+    controllerError(res, error, 'Server error updating trip');
   }
 };
 
@@ -125,10 +143,15 @@ const deleteTrip = async (req, res) => {
       return res.status(403).json({ message: 'Only the trip owner can delete it' });
     }
 
+    // Operations in one transaction must run sequentially.
+    await require('../models/Expense').deleteMany({ trip: trip._id });
+    await require('../models/Booking').deleteMany({ trip: trip._id });
+    await require('../models/Itinerary').deleteMany({ trip: trip._id });
+    await require('../models/Template').updateMany({ sourceTrip: trip._id }, { isPublic: false });
     await trip.deleteOne();
     res.json({ message: 'Trip deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error deleting trip' });
+    controllerError(res, error, 'Server error deleting trip');
   }
 };
 
@@ -140,14 +163,18 @@ const addMember = async (req, res) => {
     const trip = await Trip.findById(req.params.id);
     if (!trip) return res.status(404).json({ message: 'Trip not found' });
 
-    const { name, email, role, avatar } = req.body;
+    const { name, role, avatar } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    if (!name || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ message: 'Member name and valid email are required' });
+    if (role && !['admin', 'editor', 'viewer'].includes(role)) return res.status(400).json({ message: 'Invalid member role' });
+    const registeredUser = await User.findOne({ email });
 
     const alreadyMember = trip.members.some(m => m.email === email);
     if (alreadyMember) {
       return res.status(400).json({ message: 'This person is already a member' });
     }
 
-    trip.members.push({ name, email, role: role || 'viewer', avatar: avatar || '', joinedAt: new Date() });
+    trip.members.push({ user: registeredUser?._id, name, email, role: role || 'viewer', avatar: avatar || '', joinedAt: new Date() });
     trip.activityFeed.unshift({
       user: req.user.name,
       action: `invited ${name}`,
@@ -155,10 +182,10 @@ const addMember = async (req, res) => {
     });
 
     const updated = await trip.save();
-    res.json(updated);
+    res.json((await withSpending([updated]))[0]);
   } catch (error) {
     console.error('Error adding member:', error);
-    res.status(500).json({ message: 'Server error adding member' });
+    controllerError(res, error, 'Server error adding member');
   }
 };
 
@@ -173,18 +200,30 @@ const removeMember = async (req, res) => {
     const targetId = req.params.memberId;
     const member = trip.members.find(m => m._id?.toString() === targetId || m.user?.toString() === targetId);
     if (!member) return res.status(404).json({ message: 'Member not found' });
+    if (member.user?.toString() === trip.owner.toString()) {
+      return res.status(400).json({ message: 'The trip owner cannot be removed or demoted' });
+    }
 
-    trip.members = trip.members.filter(m => m._id?.toString() !== targetId && m.user?.toString() !== targetId);
-    trip.activityFeed.unshift({
-      user: req.user.name,
-      action: `removed ${member.name}`,
-      timestamp: new Date()
-    });
+    // Never rewrite financial history as a side effect of removing a member.
+    const Expense = require('../models/Expense');
+    const aliases = [String(member._id), member.user && String(member.user)].filter(Boolean);
+    const references = value => aliases.includes(String(value?.userId || '')) ||
+      (!value?.userId && value?.name === member.name);
+    const expenses = await Expense.find({trip:trip._id});
+    const hasExpenses = expenses.some(e => references(e.paidBy) || e.splitAmong.some(references));
+    const hasPayments = trip.settlements.some(p => aliases.includes(String(p.payerId)) || aliases.includes(String(p.payeeId)));
+    if (hasExpenses || hasPayments) return res.status(409).json({message: `Cannot remove ${member.name} while expenses or payments reference them. Update those records explicitly first; their shares will not be reassigned automatically.`});
 
-    const updated = await trip.save();
-    res.json(updated);
+    const updated = await Trip.findOneAndUpdate(
+      {_id:trip._id,__v:trip.__v},
+      {$pull:{members:{_id:member._id}},$push:{activityFeed:{user:req.user.name,action:`removed ${member.name}`,timestamp:new Date()}},$inc:{__v:1}},
+      {new:true,runValidators:true}
+    );
+    if (!updated) return res.status(409).json({message:'Trip changed during member removal. Refresh and try again.'});
+    res.json((await withSpending([updated]))[0]);
   } catch (error) {
-    res.status(500).json({ message: 'Server error removing member' });
+    console.error(error);
+    controllerError(res, error, 'Server error removing member');
   }
 };
 
@@ -199,7 +238,11 @@ const updateMemberRole = async (req, res) => {
     const targetId = req.params.memberId;
     const member = trip.members.find(m => m._id?.toString() === targetId || m.user?.toString() === targetId);
     if (!member) return res.status(404).json({ message: 'Member not found' });
+    if (member.user?.toString() === trip.owner.toString()) {
+      return res.status(400).json({ message: 'The trip owner cannot be removed or demoted' });
+    }
 
+    if (!['admin', 'editor', 'viewer'].includes(req.body.role)) return res.status(400).json({ message: 'Invalid member role' });
     member.role = req.body.role;
     trip.activityFeed.unshift({
       user: req.user.name,
@@ -208,9 +251,9 @@ const updateMemberRole = async (req, res) => {
     });
 
     const updated = await trip.save();
-    res.json(updated);
+    res.json((await withSpending([updated]))[0]);
   } catch (error) {
-    res.status(500).json({ message: 'Server error updating member role' });
+    controllerError(res, error, 'Server error updating member role');
   }
 };
 
@@ -219,16 +262,22 @@ const updateMemberRole = async (req, res) => {
 // @access  Protected
 const importTrip = async (req, res) => {
   try {
-    const { title, destination, startDate, endDate, budget, currency, days, publishToExplore } = req.body;
+    const { title, destination, startDate, endDate, budget, currency, days, publishToExplore, image, imageCredit, sources, planningTips } = req.body;
     const Itinerary = require('../models/Itinerary'); // Import here to avoid circular dep issues if any
+
+    const normalizedDays = tripDays(startDate, endDate, importDays(days ?? [], startDate, endDate));
+    // Validate the itinerary before creating a trip, avoiding partial imports on bad input.
+    await new Itinerary({ trip: new (require('mongoose').Types.ObjectId)(), days: normalizedDays }).validate();
 
     // 1. Create the Trip
     const trip = await Trip.create({
       title,
       destination,
+      image, imageCredit, sources, planningTips,
       startDate,
       endDate,
       budget: budget || 0,
+      activitiesCount: normalizedDays.reduce((count, day) => count + (day.activities?.length || 0), 0),
       currency: currency || 'INR',
       visibility: 'private',
       status: 'planning',
@@ -251,13 +300,15 @@ const importTrip = async (req, res) => {
 
     // 2. Create the associated Itinerary with the parsed days/activities
     if (days && Array.isArray(days)) {
-      await Itinerary.create({
-        trip: trip._id,
-        days: days
-      });
+      try {
+        await Itinerary.create({ trip: trip._id, days: normalizedDays });
+      } catch (error) {
+        await Trip.deleteOne({ _id: trip._id });
+        throw error;
+      }
       
       // 3. Automatically publish as a public Template for the Explore page (if requested)
-      if (publishToExplore !== false) {
+      if (publishToExplore === true) {
         const Template = require('../models/Template');
         try {
           await Template.create({
@@ -271,7 +322,7 @@ const importTrip = async (req, res) => {
             authorName: req.user.name,
             authorAvatar: req.user.avatar,
             isPublic: true,
-            days: days
+            days: normalizedDays.map((day, index) => ({ dayNumber: index + 1, title: day.title || `Day ${index + 1}`, activities: day.activities }))
           });
         } catch (templateError) {
           console.error('Failed to auto-publish template during import:', templateError);
@@ -283,7 +334,7 @@ const importTrip = async (req, res) => {
     res.status(201).json(trip);
   } catch (error) {
     console.error('Import trip error:', error);
-    res.status(500).json({ message: 'Server error importing trip' });
+    controllerError(res, error, 'Server error importing trip');
   }
 };
 

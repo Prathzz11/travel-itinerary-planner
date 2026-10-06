@@ -1,32 +1,33 @@
+import { useTripPermissions } from '../hooks/useTripPermissions';
 import React, { useState, useContext, useMemo, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { IndianRupee, Plus, List, Filter, ChevronDown, ChevronUp, Edit2, Trash2, Tag, Calendar, User, AlignLeft, Search, AlertTriangle, Download, Edit3, Check, Users, Printer } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { useDebounce } from '../hooks/useDebounce';
 import { ExpenseContext } from '../contexts/ExpenseContext';
-import { useAuth } from '../contexts/AuthContext';
-import { EXPENSE_CATEGORIES, getBudgetStatus } from '../utils/categoryConfig';
-import { formatCurrency } from '../utils/formatters';
+import { EXPENSE_CATEGORIES } from '../utils/categoryConfig';
+import { formatCurrency as formatMoney } from '../utils/formatters';
 import TripNav from '../components/trip/TripNav';
 import ExpenseModal from '../components/budget/ExpenseModal';
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
-import { getTripMemberName, resolveMemberId } from '../utils/memberLookup';
-import { calculateMemberBalances } from '../utils/settlements';
+import { getTripMemberName } from '../utils/memberLookup';
+import { getSettlementSummary } from '../utils/settlements';
 
 const CATEGORY_COLORS = { 'Accommodation': '#8b5cf6', 'Food': '#ec4899', 'Transport': '#3b82f6', 'Activities': '#10b981', 'Shopping': '#f59e0b', 'Other': '#64748b' };
 
 const BudgetPage = () => {
   const { id } = useParams();
   const { trips, updateTrip, refreshTrips } = useTrip();
-  const { user } = useAuth();
-  const { getExpenses, loadExpenses, loadSettlements, getSettlements, addExpense, updateExpense, deleteExpense } = useContext(ExpenseContext);
-  
+  const { getExpenses, loadExpenses, loadSettlements, getSettlements, expenseStatus, settlementStatus, addExpense, updateExpense, deleteExpense } = useContext(ExpenseContext);
+
   const trip = trips?.find(t => (t._id || t.id) === id);
+  const formatCurrency = value => formatMoney(value, trip?.currency);
+  const { canEdit, canManage } = useTripPermissions(trip);
   const expenses = getExpenses(id);
   const settlements = getSettlements(id);
-  const tripMembers = trip?.members || [];
-  
+  const tripMembers = useMemo(() => trip?.members || [], [trip?.members]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
@@ -37,6 +38,7 @@ const BudgetPage = () => {
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [budgetInput, setBudgetInput] = useState(trip?.budget || 0);
   const [confirmDeleteExpenseId, setConfirmDeleteExpenseId] = useState(null);
+  const [confirmDeleteExpenseAnchorRect, setConfirmDeleteExpenseAnchorRect] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -53,10 +55,10 @@ const BudgetPage = () => {
 
   const highestExpense = useMemo(() => expenses.length === 0 ? null : expenses.reduce((max, exp) => exp.amount > max.amount ? exp : max, expenses[0]), [expenses]);
 
-  const balances = useMemo(() => {
-    if (!tripMembers || tripMembers.length === 0) return [];
-    return calculateMemberBalances(tripMembers, expenses, settlements).sort((a, b) => b.net - a.net);
-  }, [tripMembers, expenses, settlements]);
+  const balanceSummary = useMemo(() => getSettlementSummary(tripMembers, expenses, settlements), [tripMembers, expenses, settlements]);
+  const balances = balanceSummary.balances;
+  const balancesReady = expenseStatus[id] === 'ready' && settlementStatus[id] === 'ready';
+  const balancesFailed = expenseStatus[id] === 'error' || settlementStatus[id] === 'error';
 
   const getMemberName = useCallback((paidBy) => getTripMemberName(tripMembers, paidBy, expenses), [tripMembers, expenses]);
 
@@ -76,27 +78,31 @@ const BudgetPage = () => {
   const isOverBudget = totalExpenses > budgetLimit;
   const percentUsed = budgetLimit > 0 ? Math.min((totalExpenses / budgetLimit) * 100, 100) : 0;
   const avgCostPerPerson = tripMembers.length > 0 ? (totalExpenses / tripMembers.length) : 0;
-  const assumedBudgetPerPerson = tripMembers.length > 0 ? (budgetLimit / tripMembers.length) : 0;
-  const tripDuration = trip.startDate && trip.endDate ? Math.max(1, Math.ceil(Math.abs(new Date(trip.endDate) - new Date(trip.startDate)) / (1000 * 60 * 60 * 24))) : 1;
+  const tripDuration = trip.startDate && trip.endDate ? Math.max(1, Math.floor((new Date(trip.endDate) - new Date(trip.startDate)) / (1000 * 60 * 60 * 24)) + 1) : 1;
   const dailyBurnRate = totalExpenses / tripDuration;
 
-  const handleSaveExpense = (data) => { 
+  const handleSaveExpense = async (data) => {
     if (editingExpense) {
       const expId = editingExpense._id || editingExpense.id;
-      updateExpense(id, expId, data); 
+      await updateExpense(id, expId, { ...data, __v: editingExpense.__v });
     } else {
-      addExpense(id, data); 
+      await addExpense(id, data);
     }
-    setIsModalOpen(false); 
-    setEditingExpense(null); 
+    await refreshTrips();
+    setIsModalOpen(false);
+    setEditingExpense(null);
   };
-  const handleSaveBudget = () => { updateTrip(id, { budget: Number(budgetInput) }); setIsEditingBudget(false); };
+  const handleSaveBudget = async () => { try { await updateTrip(id, { budget: Number(budgetInput) }); setIsEditingBudget(false); } catch { /* Keep input on failure. */ } };
 
   const exportCSV = () => {
     const headers = ['Date', 'Description', 'Category', 'Amount', 'Currency', 'Paid By', 'Split Type'];
-    const rows = expenses.map(exp => [new Date(exp.date).toLocaleDateString(), `"${exp.description}"`, exp.category, exp.amount, exp.currency || 'INR', `"${getMemberName(exp.paidBy)}"`, exp.splitType]);
-    const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
-    const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `${trip.title.replace(/\s+/g, '_')}_expenses.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    const rows = expenses.map(exp => [new Date(exp.date).toLocaleDateString(), exp.description, exp.category, exp.amount, exp.currency || trip.currency, getMemberName(exp.paidBy), exp.splitType]);
+    const escapeCell = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const csvContent = [headers, ...rows].map(row => row.map(escapeCell).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a'); link.href = url; link.download = `${trip.title.replace(/\s+/g, '_')}_expenses.csv`;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (
@@ -108,7 +114,7 @@ const BudgetPage = () => {
             <div className="d-flex gap-2">
               <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={() => window.print()}><Printer size={14} /> Print</button>
               <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={exportCSV}><Download size={14} /> CSV</button>
-              <button className="btn btn-success btn-sm d-flex align-items-center gap-1" onClick={() => { setEditingExpense(null); setIsModalOpen(true); }}><Plus size={14} /> Add Expense</button>
+              <button disabled={!canEdit} className="btn btn-success btn-sm d-flex align-items-center gap-1" onClick={() => { setEditingExpense(null); setIsModalOpen(true); }}><Plus size={14} /> Add Expense</button>
             </div>
           </div>
           <TripNav tripId={trip._id || trip.id} />
@@ -122,7 +128,7 @@ const BudgetPage = () => {
           <div className="row g-3 mb-4">
             <div className="col-md-3"><div className="card"><div className="card-body"><div className="text-muted small">Total Expenses</div><div className="fs-3 fw-bold" style={{ color: 'var(--color-primary)' }}>{formatCurrency(totalExpenses)}</div></div></div></div>
             <div className="col-md-3"><div className="card"><div className="card-body">
-              <div className="d-flex justify-content-between"><span className="text-muted small">Budget</span>{!isEditingBudget && <button className="btn btn-link p-0 text-muted" onClick={() => setIsEditingBudget(true)}><Edit3 size={12} /></button>}</div>
+              <div className="d-flex justify-content-between"><span className="text-muted small">Budget</span>{!isEditingBudget && <button disabled={!canManage} className="btn btn-link p-0 text-muted" onClick={() => { setBudgetInput(trip.budget || 0); setIsEditingBudget(true); }}><Edit3 size={12} /></button>}</div>
               {isEditingBudget ? <div className="input-group mt-1"><input type="number" className="form-control form-control-sm" value={budgetInput} onChange={e => setBudgetInput(e.target.value)} /><button className="btn btn-success btn-sm" onClick={handleSaveBudget}><Check size={14} /></button></div> : <div className="fs-3 fw-bold">{formatCurrency(budgetLimit)}</div>}
             </div></div></div>
             <div className="col-md-3"><div className="card"><div className="card-body"><div className="text-muted small">Remaining</div><div className="fs-3 fw-bold" style={{ color: isOverBudget ? 'var(--color-danger)' : 'var(--color-success)' }}>{formatCurrency(budgetLimit - totalExpenses)}</div></div></div></div>
@@ -170,11 +176,11 @@ const BudgetPage = () => {
             <div className="col-md-3">
               <div className="card h-100"><div className="card-body">
                 <h6 className="mb-3">Member Balances</h6>
-                {balances.length > 0 ? balances.map((b, i) => (
+                {!balancesReady ? <div role={balancesFailed ? 'alert' : 'status'}>{balancesFailed ? 'Could not load balances. Reload to retry.' : 'Loading balances…'}</div> : balanceSummary.issues.length ? <div role="alert" className="text-warning small">Check expense splits and members in Settle Up before using these balances.</div> : balances.length > 0 ? balances.map((b, i) => (
                   <div key={i} className="d-flex justify-content-between align-items-center py-2 border-bottom">
                     <span className="fw-semibold small">{b.name}</span>
                     <span className="small fw-bold" style={{ color: b.net > 0 ? 'var(--color-success)' : b.net < 0 ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
-                      {b.net > 0 ? `+${formatCurrency(b.net)}` : b.net < 0 ? `-${formatCurrency(Math.abs(b.net))}` : 'settled'}
+                      {b.net > 0 ? `Gets back ${formatCurrency(b.net)}` : b.net < 0 ? `Owes ${formatCurrency(Math.abs(b.net))}` : 'settled'}
                     </span>
                   </div>
                 )) : <div className="text-muted fst-italic small text-center mt-3">No balances.</div>}
@@ -192,14 +198,14 @@ const BudgetPage = () => {
             </div>
           </div>
 
-          {processedExpenses.length === 0 && <EmptyState icon={search || categoryFilter !== 'All' ? Search : List} title={search || categoryFilter !== 'All' ? "No expenses found" : "No expenses yet"} message={search || categoryFilter !== 'All' ? "Try adjusting your filters." : "Add your first expense to get started."} actionLabel={search || categoryFilter !== 'All' ? "Clear Filters" : "Add Expense"} actionIcon={search || categoryFilter !== 'All' ? null : Plus} onAction={() => { if (search || categoryFilter !== 'All') { setSearch(''); setCategoryFilter('All'); } else { setEditingExpense(null); setIsModalOpen(true); }}} />}
+          {processedExpenses.length === 0 && <EmptyState icon={search || categoryFilter !== 'All' ? Search : List} title={search || categoryFilter !== 'All' ? "No expenses found" : "No expenses yet"} message={search || categoryFilter !== 'All' ? "Try adjusting your filters." : "Add your first expense to get started."} actionLabel={search || categoryFilter !== 'All' ? "Clear Filters" : "Add Expense"} actionIcon={search || categoryFilter !== 'All' ? null : Plus} onAction={() => { if (search || categoryFilter !== 'All') { setSearch(''); setCategoryFilter('All'); } else if (canEdit) { setEditingExpense(null); setIsModalOpen(true); }}} />}
 
           <div className="d-flex flex-column gap-2">
             {processedExpenses.map(exp => {
               const expId = exp._id || exp.id;
               const isExpanded = expandedId === expId;
               return (
-                <div key={expId} className="card animate-fade-in" onClick={() => setExpandedId(prev => prev === expId ? null : expId)} style={{ cursor: 'pointer', borderColor: isExpanded ? 'var(--color-primary)' : undefined }}>
+                <div key={expId} role="button" tabIndex={0} aria-label={`Expense details: ${exp.description}`} onKeyDown={e => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setExpandedId(prev => prev === expId ? null : expId); } }} className="card animate-fade-in" onClick={() => setExpandedId(prev => prev === expId ? null : expId)} style={{ cursor: 'pointer', borderColor: isExpanded ? 'var(--color-primary)' : undefined }}>
                   <div className="card-body py-3 d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center gap-3">
                       <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 40, height: 40, background: EXPENSE_CATEGORIES[exp.category]?.bgColor || 'rgba(100,116,139,0.2)', fontSize: '1.2rem' }}>{EXPENSE_CATEGORIES[exp.category]?.emoji || '📌'}</div>
@@ -211,8 +217,8 @@ const BudgetPage = () => {
                     <div className="card-footer border-top animate-fade-in">
                       <div className="d-flex gap-4 flex-wrap">
                         <div className="flex-grow-1"><h6 className="text-muted small d-flex align-items-center gap-1 mb-2"><Users size={14} /> Split (equal)</h6>{(exp.splitAmong || []).filter(s => (s.share || 0) > 0).map((split, sIdx) => <div key={split.memberId?.toString() || split.userId?.toString() || sIdx} className="d-flex justify-content-between small"><span>{getMemberName(split)}</span><strong>₹{(split.share || 0).toFixed(2)}</strong></div>)}</div>
-                        <div className="flex-grow-1"><h6 className="text-muted small mb-2">Notes</h6>{exp.receipt && <div className="small mb-2">{exp.receipt}</div>}<div className="text-muted small">Category: {exp.category}</div></div>
-                        <div className="d-flex flex-column gap-2"><button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={e => { e.stopPropagation(); setEditingExpense(exp); setIsModalOpen(true); }}><Edit2 size={14} /> Edit</button><button className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" onClick={e => { e.stopPropagation(); setConfirmDeleteExpenseId(expId); }}><Trash2 size={14} /> Delete</button></div>
+                        <div className="flex-grow-1"><h6 className="text-muted small mb-2">Notes</h6>{exp.notes && <div className="small mb-2">{exp.notes}</div>}{exp.receipt && <div className="small mb-2">Receipt: {exp.receipt}</div>}<div className="text-muted small">Category: {exp.category}</div></div>
+                        <div className="d-flex flex-column gap-2"><button disabled={!canEdit} className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={e => { e.stopPropagation(); setEditingExpense(exp); setIsModalOpen(true); }}><Edit2 size={14} /> Edit</button><button disabled={!canEdit} className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" onClick={e => { e.stopPropagation(); setConfirmDeleteExpenseAnchorRect(e.currentTarget.getBoundingClientRect()); setConfirmDeleteExpenseId(expId); }}><Trash2 size={14} /> Delete</button></div>
                       </div>
                     </div>
                   )}
@@ -223,8 +229,8 @@ const BudgetPage = () => {
         </div>
       </div>
 
-      <ExpenseModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingExpense(null); }} onSave={handleSaveExpense} tripMembers={tripMembers} initialData={editingExpense} />
-      <ConfirmDialog isOpen={!!confirmDeleteExpenseId} title="Delete Expense?" message="This expense and all split data will be permanently removed." confirmLabel="Delete Expense" onConfirm={() => { deleteExpense(id, confirmDeleteExpenseId); setConfirmDeleteExpenseId(null); }} onCancel={() => setConfirmDeleteExpenseId(null)} />
+      <ExpenseModal currency={trip.currency} isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingExpense(null); }} onSave={handleSaveExpense} tripMembers={tripMembers} initialData={editingExpense} />
+      <ConfirmDialog anchorRect={confirmDeleteExpenseAnchorRect} isOpen={!!confirmDeleteExpenseId} title="Delete Expense?" message="This expense and all split data will be permanently removed." confirmLabel="Delete Expense" onConfirm={async () => { await deleteExpense(id, confirmDeleteExpenseId); await refreshTrips(); setConfirmDeleteExpenseId(null); }} onCancel={() => { setConfirmDeleteExpenseId(null); }} />
     </div>
   );
 };

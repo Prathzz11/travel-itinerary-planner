@@ -1,107 +1,57 @@
-import { buildTripMemberBalanceLookup, resolveMemberId } from './memberLookup';
+import { resolveMemberId } from './memberLookup.js';
 
-export const calculateMemberBalances = (tripMembers, expenses, recordedSettlements) => {
-  const memberMap = buildTripMemberBalanceLookup(tripMembers);
-
-  const getBalance = (value) => {
+// Compute once in minor units so suggestions and every balance display agree.
+export const getSettlementSummary = (members = [], expenses = [], payments = []) => {
+  const balances = members.map(m => ({ id: resolveMemberId(m._id || m.id || m.user), name: m.name || 'Member', paid: 0, owes: 0, sent: 0, received: 0, net: 0 }));
+  const issues = new Set();
+  const resolve = value => {
     const id = resolveMemberId(value);
-    let balance = id ? memberMap.get(id) : null;
-    
-    // Fallback to name matching if id doesn't match
-    if (!balance && value && typeof value === 'object' && value.name && value.name !== 'Unknown') {
-      balance = memberMap.get(value.name.toLowerCase());
-    }
-    
-    return balance || null;
+    const index = members.findIndex(m => [m._id, m.id, m.user, m.userId].map(resolveMemberId).filter(Boolean).includes(id));
+    if (index >= 0) return balances[index];
+    const matches = balances.filter(b => value?.name && b.name.toLowerCase() === value.name.toLowerCase());
+    return matches.length === 1 ? matches[0] : null;
   };
-
-  expenses.forEach(exp => {
-    const payerBalance = getBalance(exp.paidBy);
-    if (payerBalance) payerBalance.paid += Number(exp.amount || 0);
-    
-    (exp.splitAmong || []).forEach(split => {
-      const splitBalance = getBalance(split);
-      if (splitBalance) splitBalance.owes += Number(split.share || 0);
-    });
-  });
-
-  recordedSettlements.forEach(settlement => {
-    // Pass an object with name so the fallback can work if ID fails
-    const payerBalance = getBalance({ id: settlement.payerId, name: settlement.payerName });
-    const payeeBalance = getBalance({ id: settlement.payeeId, name: settlement.payeeName });
-    if (payerBalance) payerBalance.owes -= Number(settlement.amount || 0);
-    if (payeeBalance) payeeBalance.paid -= Number(settlement.amount || 0);
-  });
-
-  const uniqueBalances = Array.from(new Set(memberMap.values()));
-  uniqueBalances.forEach(b => {
-    // Cancel out matching paid and owes to simplify the display
-    // e.g. if someone paid 16600 but their share is 4150, they effectively paid 12450 for others and owe 0.
-    const min = Math.min(b.paid, b.owes);
-    b.paid -= min;
-    b.owes -= min;
-    b.net = b.paid - b.owes;
-  });
-
-  return uniqueBalances.sort((a, b) => b.net - a.net);
-};
-
-/**
- * Calculates optimal settlement transactions to clear debts using a greedy algorithm.
- *
- * @param {Array} tripMembers - Array of member objects from TripContext
- * @param {Array} expenses - Array of expense objects from ExpenseContext
- * @param {Array} recordedSettlements - Array of recorded settlement objects from ExpenseContext
- * @returns {Array} Array of suggested transactions { from, to, amount }
- */
-export const calculateOptimalSettlements = (tripMembers, expenses, recordedSettlements) => {
-  const uniqueBalances = calculateMemberBalances(tripMembers, expenses, recordedSettlements);
-
-  // 2. Separate into debtors (net < 0) and creditors (net > 0)
-  const debtors = [];
-  const creditors = [];
-
-  uniqueBalances.forEach(b => {
-    // Round to avoid floating point issues
-    const net = Math.round(b.net * 100) / 100;
-    if (net < 0) debtors.push({ ...b, net: Math.abs(net) }); // make net positive for easier math
-    else if (net > 0) creditors.push({ ...b, net });
-  });
-
-  // Sort descending by amount
-  debtors.sort((a, b) => b.net - a.net);
-  creditors.sort((a, b) => b.net - a.net);
-
-  // 3. Greedily match largest debtor to largest creditor
-  const transactions = [];
-  let i = 0; // debtor index
-  let j = 0; // creditor index
-
-  while (i < debtors.length && j < creditors.length) {
-    const debtor = debtors[i];
-    const creditor = creditors[j];
-    
-    // Amount to settle is the minimum of what debtor owes and creditor is owed
-    const amount = Math.min(debtor.net, creditor.net);
-    
-    // Create transaction
-    if (amount > 0) {
-      transactions.push({
-        from: { id: debtor.id, name: debtor.name },
-        to: { id: creditor.id, name: creditor.name },
-        amount: amount
-      });
+  const cents = value => Math.round(Number(value) * 100);
+  for (const expense of expenses) {
+    const amount = cents(expense.amount);
+    const payer = resolve(expense.paidBy);
+    const splits = expense.splitAmong || [];
+    if (!payer || !Number.isFinite(amount) || amount < 0) { issues.add('Some expenses have an invalid payer or amount.'); continue; }
+    payer.paid += amount;
+    const raw = splits.map(s => Number(s.share) * 100);
+    if (raw.some(n => !Number.isFinite(n) || n < 0) || Math.abs(raw.reduce((a,b) => a+b, 0) - amount) > 0.01) {
+      issues.add('Some expense shares do not match their total.'); continue;
     }
-
-    // Update remaining balances
-    debtor.net -= amount;
-    creditor.net -= amount;
-
-    // Move to next if fully settled
-    // Add small epsilon for floating point comparison
-    if (debtor.net < 0.01) i++;
-    if (creditor.net < 0.01) j++;
+    // Older equal splits may contain repeating decimals. Allocate leftover cents deterministically.
+    const allocated = raw.map(n => Math.floor(n + 1e-8));
+    const order = raw.map((n,i) => i).sort((a,b) => (raw[b]-allocated[b])-(raw[a]-allocated[a]));
+    let remainder = amount - allocated.reduce((a,b) => a+b, 0);
+    for (const i of order) { if (remainder-- > 0) allocated[i]++; }
+    splits.forEach((split,i) => {
+      const member = resolve(split);
+      if (member) member.owes += allocated[i];
+      else if (allocated[i]) issues.add('Some expenses refer to members who are no longer in this trip.');
+    });
   }
-
-  return transactions;
+  for (const payment of payments) {
+    const from = resolve(payment.payerId);
+    const to = resolve(payment.payeeId);
+    const amount = cents(payment.amount);
+    if (!from || !to || from === to || !Number.isFinite(amount) || amount <= 0) { issues.add('Some payment records have invalid members or amounts.'); continue; }
+    from.sent += amount; to.received += amount;
+  }
+  for (const b of balances) b.net = b.paid - b.owes + b.sent - b.received;
+  const debtors = balances.filter(b => b.net < 0).map(b => ({ ...b, remaining: -b.net })).sort((a,b) => b.remaining-a.remaining);
+  const creditors = balances.filter(b => b.net > 0).map(b => ({ ...b, remaining: b.net })).sort((a,b) => b.remaining-a.remaining);
+  const transactions = [];
+  let i = 0, j = 0;
+  while (i < debtors.length && j < creditors.length && !issues.size) {
+    const from = debtors[i], to = creditors[j], amount = Math.min(from.remaining, to.remaining);
+    transactions.push({ from: { id: from.id, name: from.name }, to: { id: to.id, name: to.name }, amount: amount / 100 });
+    from.remaining -= amount; to.remaining -= amount;
+    if (!from.remaining) i++;
+    if (!to.remaining) j++;
+  }
+  for (const b of balances) for (const key of ['paid','owes','sent','received','net']) b[key] /= 100;
+  return { balances: balances.sort((a,b) => b.net-a.net), transactions, issues: [...issues] };
 };

@@ -1,0 +1,12 @@
+const mongoose = require('mongoose');
+const Trip = require('./backend/models/Trip');
+
+mongoose.connect('mongodb://127.0.0.1:27017/travelsync').then(async () => {
+   const trip1 = await Trip.findOne({});
+   console.log("First load:", trip1.members[1]._id.toString());
+   
+   const trip2 = await Trip.findOne({});
+   console.log("Second load:", trip2.members[1]._id.toString());
+   
+   process.exit(0);
+});

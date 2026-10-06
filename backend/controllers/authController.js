@@ -1,3 +1,4 @@
+const { controllerError } = require('../utils/controllerError');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
@@ -12,7 +13,8 @@ const generateToken = (id) => {
 // @access  Public
 const signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Please provide name, email and password' });
@@ -47,7 +49,7 @@ const signup = async (req, res) => {
     });
   } catch (error) {
     console.error('Signup error:', error);
-    res.status(500).json({ message: 'Server error during signup' });
+    controllerError(res, error, 'Server error during signup');
   }
 };
 
@@ -56,7 +58,8 @@ const signup = async (req, res) => {
 // @access  Public
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Please provide email and password' });
@@ -84,7 +87,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    controllerError(res, error, 'Server error during login');
   }
 };
 
@@ -108,7 +111,7 @@ const getMe = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error fetching user' });
+    controllerError(res, error, 'Server error fetching user');
   }
 };
 
@@ -143,7 +146,7 @@ const updateMe = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error updating profile' });
+    controllerError(res, error, 'Server error updating profile');
   }
 };
 
@@ -176,8 +179,30 @@ const logViewedTemplate = async (req, res) => {
     res.json({ recentlyViewed: populatedUser.recentlyViewed });
   } catch (error) {
     console.error('Log viewed template error:', error);
-    res.status(500).json({ message: 'Server error logging view' });
+    controllerError(res, error, 'Server error logging view');
   }
 };
 
 module.exports = { signup, login, getMe, updateMe, logViewedTemplate };
+
+module.exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Current password and a new password of at least 6 characters are required' });
+    }
+    const user = await User.findById(req.user._id).select('+password');
+    if (!(await user.matchPassword(currentPassword))) return res.status(400).json({ message: 'Current password is incorrect' });
+    user.password = newPassword;
+    await user.save();
+    res.json({ message: 'Password updated' });
+  } catch (error) { controllerError(res, error, 'Could not change password'); }
+};
+
+module.exports.getPublicProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('name bio avatar createdAt');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (error) { controllerError(res, error, 'Could not load profile'); }
+};

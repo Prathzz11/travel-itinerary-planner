@@ -2,13 +2,22 @@
   "name": "travel-itinerary-planner",
   "private": true,
   "version": "1.0.0",
-  "description": "TravelSync — Collaborative Travel Itinerary Planner (MERN Stack)",
+  "description": "TravelSync \u2014 Collaborative Travel Itinerary Planner (MERN Stack)",
   "scripts": {
     "frontend": "cd frontend && npm run dev",
     "backend": "cd backend && npm run dev",
     "install:frontend": "cd frontend && npm install",
     "install:backend": "cd backend && npm install",
     "install:all": "npm run install:frontend && npm run install:backend",
-    "build": "cd frontend && npm run build"
+    "build": "cd frontend && npm run build",
+    "lint": "npm --prefix frontend run lint",
+    "check:backend": "node scripts/check-backend.cjs",
+    "test": "npm --prefix backend test && node --test frontend/test/*.test.js",
+    "check": "npm run check:backend && npm run lint && npm test && npm run build",
+    "seed:explore": "npm --prefix backend run seed:explore",
+    "test:integration": "npm --prefix backend run test:integration"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

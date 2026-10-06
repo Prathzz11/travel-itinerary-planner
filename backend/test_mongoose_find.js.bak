@@ -1,0 +1,16 @@
+const mongoose = require('mongoose');
+const Trip = require('./backend/models/Trip');
+
+mongoose.connect('mongodb://127.0.0.1:27017/travelsync').then(async () => {
+   const trip = await Trip.findOne({});
+   const member = trip.members[1];
+   const targetId = member._id.toString();
+   console.log('targetId:', targetId);
+   
+   const found = trip.members.find(m => {
+       return m._id?.toString() === targetId || m.user?.toString() === targetId;
+   });
+   
+   console.log('Found:', !!found);
+   process.exit(0);
+});

@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Clock, MapPin, IndianRupee, Image as ImageIcon, Tag, FileText } from 'lucide-react';
 import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
-import { useParams } from 'react-router-dom';
-import { useLocalStorage } from '../../hooks/useLocalStorage';
+const MAP_LIBRARIES = ['places'];
 
 import { ACTIVITY_CATEGORIES } from '../../utils/constants';
 
 const ActivityModal = ({ isOpen, onClose, onSave, initialData = null }) => {
-  const { id: tripId } = useParams();
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const defaultForm = {
     title: '', time: '09:00', duration: '1h', category: 'Sightseeing', 
     location: '', lat: null, lng: null, cost: 0, currency: 'INR', notes: '', images: ''
   };
 
-  const [form, setForm] = useLocalStorage('activity_draft', defaultForm);
+  const [form, setForm] = useState(defaultForm);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries: ['places']
+    libraries: MAP_LIBRARIES
   });
 
   const autocompleteRef = useRef(null);
@@ -38,19 +38,24 @@ const ActivityModal = ({ isOpen, onClose, onSave, initialData = null }) => {
   };
 
   useEffect(() => {
+    if (!isOpen) return;
     if (initialData) {
       setForm({
         ...initialData,
+        title: initialData.name || initialData.title || '',
         images: initialData.images ? initialData.images.join(', ') : ''
       });
-    }
-  }, [initialData, isOpen]);
+    } else { setForm({ title: '', time: '09:00', duration: '1h', category: 'Sightseeing', location: '', lat: null, lng: null, cost: 0, currency: 'INR', notes: '', images: '' }); }
+  }, [initialData, isOpen, setForm]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave({
+    if (saving) return;
+    setSaving(true); setSaveError('');
+    try {
+    await onSave({
       ...form,
       images: form.images ? form.images.split(',').map(s => s.trim()) : []
     });
@@ -58,6 +63,8 @@ const ActivityModal = ({ isOpen, onClose, onSave, initialData = null }) => {
       setForm(defaultForm);
       localStorage.removeItem('activity_draft');
     }
+    } catch (error) { setSaveError(error.userMessage || error.message || 'Could not save'); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -71,6 +78,7 @@ const ActivityModal = ({ isOpen, onClose, onSave, initialData = null }) => {
               <button type="button" className="btn-close btn-close-white" onClick={onClose} aria-label="Close"></button>
             </div>
             <div className="modal-body">
+              {saveError && <div className="alert alert-danger" role="alert">{saveError}</div>}
               <form id="activityForm" onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label className="form-label text-muted">Activity Name</label>
@@ -123,7 +131,7 @@ const ActivityModal = ({ isOpen, onClose, onSave, initialData = null }) => {
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
-              <button type="submit" form="activityForm" className="btn btn-primary">{initialData ? 'Save Changes' : 'Add Activity'}</button>
+              <button disabled={saving} type="submit" form="activityForm" className="btn btn-primary">{initialData ? 'Save Changes' : 'Add Activity'}</button>
             </div>
           </div>
         </div>

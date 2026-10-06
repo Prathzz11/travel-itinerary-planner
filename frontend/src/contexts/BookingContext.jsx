@@ -1,4 +1,5 @@
-import React, { createContext, useState, useCallback, useMemo } from 'react';
+import { isEditing } from '../utils/autoRefresh';
+import React, { createContext, useState, useCallback, useMemo, useRef } from 'react';
 import { useNotification } from './NotificationContext';
 import {
   getBookings as apiGetBookings,
@@ -12,25 +13,29 @@ export const BookingContext = createContext();
 export const BookingProvider = ({ children }) => {
   // Cache: { [tripId]: booking[] }
   const { addNotification } = useNotification();
+  const versions = useRef({});
+  const bump = id => { versions.current[id] = (versions.current[id] || 0) + 1; return versions.current[id]; };
   const [bookingCache, setBookingCache] = useState({});
 
-  const loadBookings = useCallback(async (tripId) => {
+  const loadBookings = useCallback(async (tripId, { silent = false } = {}) => {
+    const version = bump(tripId);
     try {
       const res = await apiGetBookings(tripId);
-      setBookingCache(prev => ({ ...prev, [tripId]: res.data }));
+      if (versions.current[tripId] === version && !(silent && isEditing(document))) setBookingCache(prev => ({ ...prev, [tripId]: res.data }));
       return res.data;
     } catch (err) {
       console.error('Failed to load bookings:', err);
-      addNotification(err.userMessage || 'Failed to load logistics data', 'error');
+      if (!silent) addNotification(err.userMessage || 'Failed to load logistics data', 'error');
       return [];
     }
-  }, []);
+  }, [addNotification]);
 
   const getBookings = useCallback((tripId) => bookingCache[tripId] || [], [bookingCache]);
 
   const addBooking = useCallback(async (tripId, bookingData) => {
     try {
       const res = await apiCreateBooking(tripId, bookingData);
+      bump(tripId);
       setBookingCache(prev => ({
         ...prev,
         [tripId]: [...(prev[tripId] || []), res.data]
@@ -45,6 +50,7 @@ export const BookingProvider = ({ children }) => {
   const updateBooking = useCallback(async (tripId, bookingId, updatedData) => {
     try {
       const res = await apiUpdateBooking(tripId, bookingId, updatedData);
+      bump(tripId);
       setBookingCache(prev => ({
         ...prev,
         [tripId]: (prev[tripId] || []).map(b =>
@@ -61,6 +67,7 @@ export const BookingProvider = ({ children }) => {
   const deleteBooking = useCallback(async (tripId, bookingId) => {
     try {
       await apiDeleteBooking(tripId, bookingId);
+      bump(tripId);
       setBookingCache(prev => ({
         ...prev,
         [tripId]: (prev[tripId] || []).filter(b => b._id !== bookingId && b.id !== bookingId)

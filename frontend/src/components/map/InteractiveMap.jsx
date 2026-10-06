@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
 import { MapPin, Clock, IndianRupee, Image as ImageIcon } from 'lucide-react';
+const MAP_LIBRARIES = ['places'];
 
 const CATEGORY_COLORS = {
   'Accommodation': '#8b5cf6',
@@ -21,7 +22,7 @@ const InteractiveMap = ({ activities = [] }) => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey || '', // will show dev watermark if empty
-    libraries: ['places']
+    libraries: MAP_LIBRARIES
   });
 
   const [map, setMap] = useState(null);

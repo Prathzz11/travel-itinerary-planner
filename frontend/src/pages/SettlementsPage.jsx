@@ -1,153 +1,63 @@
 import React, { useState, useContext, useMemo, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Handshake, ArrowRight, Printer, CheckCircle, Trash2, Calendar, CreditCard, IndianRupee, AlertTriangle } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
 import { useTrip } from '../hooks/useTrip';
+import { useTripPermissions } from '../hooks/useTripPermissions';
 import { ExpenseContext } from '../contexts/ExpenseContext';
 import TripNav from '../components/trip/TripNav';
+import ExpenseModal from '../components/budget/ExpenseModal';
 import SettlementModal from '../components/budget/SettlementModal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
-import { calculateOptimalSettlements, calculateMemberBalances } from '../utils/settlements';
+import { getSettlementSummary } from '../utils/settlements';
 import { formatCurrency } from '../utils/formatters';
-import { getTripMemberName } from '../utils/memberLookup';
 
 const SettlementsPage = () => {
   const { id } = useParams();
-  const { trips } = useTrip();
-  const { getExpenses, loadExpenses, loadSettlements, getSettlements, addSettlement, deleteSettlement } = useContext(ExpenseContext);
-  const trip = trips?.find(t => (t._id || t.id) === id);
-  const expenses = getExpenses(id);
-  const settlements = getSettlements(id);
-  const tripMembers = trip?.members || [];
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [defaultTransaction, setDefaultTransaction] = useState(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-
-  useEffect(() => {
-    if (id) {
-      loadExpenses(id);
-      loadSettlements(id);
-    }
-  }, [id, loadExpenses, loadSettlements]);
-
-  // All hooks BEFORE early returns (Rules of Hooks)
-  const optimalTransactions = useMemo(() => calculateOptimalSettlements(tripMembers, expenses, settlements), [tripMembers, expenses, settlements]);
-  const memberBalances = useMemo(() => calculateMemberBalances(tripMembers, expenses, settlements), [tripMembers, expenses, settlements]);
-
-  // Early return AFTER all hooks
-  if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Trip not found</h2></div></div>;
-
-  const handleSettleClick = (transaction = null) => { setDefaultTransaction(transaction); setIsModalOpen(true); };
-  const getMemberName = (mId) => getTripMemberName(tripMembers, mId, expenses);
-
-  return (
-    <div className="page-container animate-fade-in">
-      <div className="card" style={{ minHeight: '80vh' }}>
-        <div className="card-header no-print">
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h2 className="fs-3 mb-0 d-flex align-items-center gap-2"><Handshake size={24} color="var(--color-primary)" /> Settle Up</h2>
-            <div className="d-flex gap-2">
-              <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={() => window.print()}><Printer size={14} /> Print</button>
-              <button className="btn btn-primary btn-sm d-flex align-items-center gap-1" onClick={() => handleSettleClick()}><IndianRupee size={14} /> Record Payment</button>
-            </div>
-          </div>
-          <TripNav tripId={trip._id || trip.id} />
-        </div>
-        <div className="card-body">
-          {/* Suggested Transactions */}
-          <h5 className="mb-3">Suggested Transactions</h5>
-          <p className="text-muted small mb-4">The most efficient way to settle all debts, minimizing total transactions.</p>
-
-          {optimalTransactions.length === 0 ? (
-            memberBalances.some(b => Math.abs(b.net) > 0.01) ? (
-              <div className="text-center py-5 rounded-3 mb-5" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--color-danger)' }}>
-                <AlertTriangle size={48} color="var(--color-danger)" className="mb-3" />
-                <h4 style={{ color: 'var(--color-danger)' }}>Unbalanced Expenses Detected</h4>
-                <p className="text-muted mb-0">Some expenses were not properly split among members. Check the balances below.</p>
-              </div>
-            ) : (
-              <div className="text-center py-5 rounded-3 mb-5" style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--color-success)' }}>
-                <CheckCircle size={48} color="#6ee7b7" className="mb-3" />
-                <h4 style={{ color: '#6ee7b7' }}>All settled up!</h4>
-                <p className="text-muted mb-0">No outstanding debts among trip members.</p>
-              </div>
-            )
-          ) : (
-            <div className="d-flex flex-column gap-3 mb-5">
-              {optimalTransactions.map((tx, idx) => (
-                <div key={idx} className="card">
-                  <div className="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div className="d-flex align-items-center gap-3 flex-grow-1">
-                      <div className="d-flex flex-column align-items-center gap-1"><div className="rounded-circle d-flex align-items-center justify-content-center fw-bold" style={{ width: 40, height: 40, background: 'rgba(239,68,68,0.2)', border: '2px solid var(--color-danger)' }}>{tx.from.name.charAt(0)}</div><span className="small fw-semibold">{tx.from.name}</span></div>
-                      <div className="flex-grow-1 d-flex flex-column align-items-center" style={{ minWidth: 80 }}>
-                        <span className="fw-bold fs-5">{formatCurrency(tx.amount)}</span>
-                        <div className="w-100 position-relative" style={{ height: 2, background: 'var(--color-border)' }}><ArrowRight size={14} className="text-muted position-absolute top-50 end-0" style={{ transform: 'translateY(-50%)' }} /></div>
-                        <span className="text-muted small">owes</span>
-                      </div>
-                      <div className="d-flex flex-column align-items-center gap-1"><div className="rounded-circle d-flex align-items-center justify-content-center fw-bold" style={{ width: 40, height: 40, background: 'rgba(16,185,129,0.2)', border: '2px solid var(--color-success)' }}>{tx.to.name.charAt(0)}</div><span className="small fw-semibold">{tx.to.name}</span></div>
-                    </div>
-                    <button className="btn btn-primary btn-sm no-print" onClick={() => handleSettleClick(tx)}>Record Payment</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Current Balances */}
-          <h5 className="mb-3">Current Balances</h5>
-          <div className="d-flex flex-column gap-2 mb-5">
-            {memberBalances.length === 0 ? (
-              <div className="text-center text-muted fst-italic p-4 rounded-2" style={{ background: 'rgba(0,0,0,0.15)' }}>No members found.</div>
-            ) : (
-              memberBalances.map(b => (
-                <div key={b.id} className="card border-start border-3" style={{ borderColor: b.net > 0 ? 'var(--color-success)' : b.net < 0 ? 'var(--color-danger)' : 'var(--color-border)' }}>
-                  <div className="card-body py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div className="fw-semibold">{b.name}</div>
-                    <div className="d-flex align-items-center gap-4 small">
-                      <div><span className="text-muted me-1">Paid:</span>{formatCurrency(b.paid)}</div>
-                      <div><span className="text-muted me-1">Owes:</span>{formatCurrency(b.owes)}</div>
-                      <div className="fw-bold fs-6" style={{ minWidth: 100, textAlign: 'right', color: b.net > 0 ? 'var(--color-success)' : b.net < 0 ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
-                        Net: {b.net > 0 ? `+${formatCurrency(b.net)}` : b.net < 0 ? `-${formatCurrency(Math.abs(b.net))}` : '0.00'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Settlement History */}
-          <h5 className="mb-3">Settlement History</h5>
-          {settlements.length === 0 ? (
-            <div className="text-center text-muted fst-italic p-4 rounded-2" style={{ background: 'rgba(0,0,0,0.15)' }}>No payments recorded yet.</div>
-          ) : (
-            <div className="d-flex flex-column gap-2">
-              {[...settlements].sort((a, b) => new Date(b.date) - new Date(a.date)).map(s => {
-                const payerStr = (s.payerName && s.payerName !== 'Unknown') ? s.payerName : getMemberName(s.payerId);
-                const payeeStr = (s.payeeName && s.payeeName !== 'Unknown') ? s.payeeName : getMemberName(s.payeeId);
-                return (
-                <div key={s.id || s._id} className="card border-start border-3 border-success">
-                  <div className="card-body d-flex justify-content-between align-items-center py-3">
-                    <div>
-                      <div className="fw-semibold">{payerStr} paid {payeeStr}</div>
-                      <div className="text-muted small d-flex gap-3"><span className="d-inline-flex align-items-center gap-1"><Calendar size={12} /> {new Date(s.date).toLocaleDateString()}</span><span className="d-inline-flex align-items-center gap-1"><CreditCard size={12} /> {s.method}</span>{s.notes && <span>• {s.notes}</span>}</div>
-                    </div>
-                    <div className="d-flex align-items-center gap-3">
-                      <span className="fw-bold fs-5" style={{ color: 'var(--color-success)' }}>{formatCurrency(s.amount)}</span>
-                      <button className="btn btn-link p-0 text-danger no-print" onClick={() => setConfirmDeleteId(s.id || s._id)} title="Delete" aria-label="Delete settlement"><Trash2 size={16} /></button>
-                    </div>
-                  </div>
-                </div>
-              )})}
-            </div>
-          )}
-        </div>
+  const { trips, tripsLoading, refreshTrips } = useTrip();
+  const { getExpenses, loadExpenses, loadSettlements, getSettlements, addSettlement, updateSettlement, addExpense, deleteSettlement, expenseStatus, settlementStatus } = useContext(ExpenseContext);
+  const trip = trips.find(t => (t._id || t.id) === id);
+  const { canEdit } = useTripPermissions(trip);
+  const expenses = getExpenses(id), payments = getSettlements(id);
+  const members = useMemo(() => trip?.members || [], [trip?.members]);
+  const summary = useMemo(() => getSettlementSummary(members, expenses, payments), [members, expenses, payments]);
+  const [expenseOpen, setExpenseOpen] = useState(false);
+  const [payment, setPayment] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+  useEffect(() => { loadExpenses(id); loadSettlements(id); }, [id, loadExpenses, loadSettlements]);
+  if (!trip) return <div className="page-container">{tripsLoading ? 'Loading trip…' : 'Trip not found.'}</div>;
+  const ready = expenseStatus[id] === 'ready' && settlementStatus[id] === 'ready';
+  const failed = expenseStatus[id] === 'error' || settlementStatus[id] === 'error';
+  const money = n => formatCurrency(n, trip.currency);
+  return <div className="page-container animate-fade-in"><div className="card">
+    <div className="card-header"><h1 className="fs-3">Settle Up</h1><p className="text-muted">{trip.title} · See who owes money and record payments.</p><TripNav tripId={id} /></div>
+    <div className="card-body">
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        <button className="btn btn-primary" disabled={!canEdit || !members.length} onClick={()=>setExpenseOpen(true)}>Add expense</button>
+        <button className="btn btn-outline-primary" disabled={!canEdit || members.length < 2} onClick={()=>setPayment({})}>Record payment</button>
+        <Link className="btn btn-outline-secondary" to={`/trip/${id}/budget`}>View all expenses</Link>
+        {members.length < 2 && <Link className="btn btn-link" to={`/trip/${id}/members`}>Add members to split expenses</Link>}
       </div>
-
-      <SettlementModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setDefaultTransaction(null); }} onSave={(data) => { addSettlement(id, data); setIsModalOpen(false); setDefaultTransaction(null); }} tripMembers={tripMembers} defaultTransaction={defaultTransaction} />
-      <ConfirmDialog isOpen={!!confirmDeleteId} title="Delete Settlement?" message="This payment record will be permanently deleted." confirmLabel="Delete" onConfirm={() => { deleteSettlement(id, confirmDeleteId); setConfirmDeleteId(null); }} onCancel={() => setConfirmDeleteId(null)} />
+      <p className="text-muted small">Add an expense for a trip purchase. Record a payment when one member repays another. Shared expenses are settled through each member’s overall balance.</p>
+      {!ready ? <div role={failed ? 'alert' : 'status'}>{failed ? <>Could not load balances. <button className="btn btn-outline-primary" onClick={() => { loadExpenses(id); loadSettlements(id); }}>Retry</button></> : 'Loading balances…'}</div> : <>
+        {summary.issues.length > 0 ? <div role="alert" className="alert alert-warning">Some records need attention. {summary.issues.join(' ')} Use Edit on payments marked “Check participants” to confirm the correct people. Suggested payments are paused until these records are fixed. <Link to={`/trip/${id}/budget`}>Review expenses</Link></div> : <>
+          <div className="d-flex align-items-center justify-content-between gap-3 mb-3"><h2 className="fs-5 mb-0">Who owes whom</h2></div>
+          {summary.transactions.length ? <div className="d-flex flex-column gap-3 mb-4">{summary.transactions.map(tx => <div key={`${tx.from.id}-${tx.to.id}`} className="border rounded p-3 d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div><strong>{tx.from.name}</strong> pays <strong>{tx.to.name}</strong><div className="fs-4 fw-bold">{money(tx.amount)}</div></div>
+            <button className="btn btn-primary" disabled={!canEdit} onClick={() => setPayment(tx)} aria-label={`Record payment from ${tx.from.name} to ${tx.to.name}`}>Record payment</button>
+          </div>)}</div> : <div className="alert alert-success">All settled up. No outstanding balances.</div>}
+          <p className="text-muted small">Record payments after money changes hands. Payments reduce balances, not trip expenses.</p>
+        </>}
+        <details className="mb-4"><summary className="fw-semibold">Member balances</summary><p className="text-muted small">{summary.issues.length ? 'These balances are incomplete until the records above are corrected.' : 'Balances include all shared expenses and recorded payments.'}</p><div className="mt-2">{summary.balances.map(b => <div key={b.id} className="d-flex justify-content-between gap-3 border-bottom py-2"><span>{b.name}</span><span>{b.net > 0 ? `Gets back ${money(b.net)}` : b.net < 0 ? `Owes ${money(-b.net)}` : 'Settled'}</span></div>)}</div></details>
+        <h2 className="fs-5">Recorded payments</h2>
+        {!payments.length ? <p className="text-muted">No payments recorded yet.</p> : <div className="d-flex flex-column gap-2">{[...payments].sort((a,b) => new Date(b.date)-new Date(a.date)).map(p => <div key={p._id || p.id} className="border rounded p-3 d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div>{[p.payerId,p.payeeId].some(value=>!members.some(m=>[String(m._id),String(m.user || '')].includes(String(value)))) && <div className="text-warning small fw-semibold">Check participants · saved member IDs no longer match this trip</div>}<strong>{p.payerName || 'Unknown member'}</strong> paid <strong>{p.payeeName || 'Unknown member'}</strong><div className="small text-muted">{new Date(p.date).toLocaleDateString()}{p.method && ` · ${p.method}`}{p.notes && ` · ${p.notes}`}</div></div>
+          <div className="d-flex gap-3 align-items-center"><strong>{money(p.amount)}</strong><button disabled={!canEdit} className="btn btn-outline-primary btn-sm" onClick={()=>setPayment({ initialData:p })} aria-label={`Edit payment from ${p.payerName || 'unknown member'}`}>Edit</button><button disabled={!canEdit} className="btn btn-outline-secondary btn-sm" onClick={() => setDeleteId(p._id || p.id)} aria-label={`Undo payment from ${p.payerName} to ${p.payeeName}`}>Undo</button></div>
+        </div>)}</div>}
+      </>}
     </div>
-  );
+  </div>
+  {expenseOpen && <ExpenseModal isOpen tripMembers={members} currency={trip.currency} onClose={()=>setExpenseOpen(false)} onSave={async data=>{await addExpense(id,data);await refreshTrips();setExpenseOpen(false);}} />}
+  {payment && <SettlementModal initialData={payment.initialData} currency={trip.currency} tripMembers={members} defaultTransaction={payment.from ? payment : null} onClose={() => setPayment(null)} onSave={async data => { if(payment.initialData) await updateSettlement(id,payment.initialData._id,data); else await addSettlement(id,data); setPayment(null); }} />}
+  <ConfirmDialog isOpen={!!deleteId} title="Undo recorded payment?" message="This removes the payment record and restores the balances. It does not reverse a money transfer." confirmLabel="Undo payment" onCancel={() => setDeleteId(null)} onConfirm={async () => { await deleteSettlement(id,deleteId); setDeleteId(null); }} />
+  </div>;
 };
-
 export default SettlementsPage;

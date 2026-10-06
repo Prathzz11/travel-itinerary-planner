@@ -1,3 +1,4 @@
+const { controllerError } = require('../utils/controllerError');
 const Itinerary = require('../models/Itinerary');
 const Trip = require('../models/Trip');
 
@@ -30,7 +31,7 @@ const getItinerary = async (req, res) => {
     res.json(itinerary);
   } catch (error) {
     console.error('Get itinerary error:', error);
-    res.status(500).json({ message: 'Server error fetching itinerary' });
+    controllerError(res, error, 'Server error fetching itinerary');
   }
 };
 
@@ -46,31 +47,37 @@ const updateItinerary = async (req, res) => {
       date: day.date,
       activities: (day.activities || []).map(act => ({
         ...(act._id ? { _id: act._id } : {}),
-        name: act.name || act.title || '',
+        name: act.title ?? act.name ?? '',
         time: act.time || '',
         duration: typeof act.duration === 'number' ? act.duration : parseDuration(act.duration),
         category: act.category || 'Other',
         location: act.location || '',
         notes: act.notes || '',
         cost: Number(act.cost) || 0,
-        order: act.order || 0
+        currency: act.currency || req.trip?.currency || 'INR',
+        order: act.order || 0,
+        completed: Boolean(act.completed),
+        lat: act.lat,
+        lng: act.lng,
+        images: Array.isArray(act.images) ? act.images : []
       }))
     }));
 
     const itinerary = await Itinerary.findOneAndUpdate(
       { trip: req.params.id },
       { days: sanitizedDays, notes: notes || '' },
-      { new: true, upsert: true }
+      { new: true, upsert: true, runValidators: true }
     );
 
     // Update activity count on trip
     const totalActivities = sanitizedDays.reduce((sum, day) => sum + (day.activities?.length || 0), 0);
-    await Trip.findByIdAndUpdate(req.params.id, { activitiesCount: totalActivities });
+    const trip = await Trip.findByIdAndUpdate(req.params.id, { activitiesCount: totalActivities }, { new: true });
+    await require('../utils/syncTemplate').syncTemplate(trip);
 
     res.json(itinerary);
   } catch (error) {
     console.error('Update itinerary error:', error);
-    res.status(500).json({ message: 'Server error updating itinerary' });
+    controllerError(res, error, 'Server error updating itinerary');
   }
 };
 
@@ -79,6 +86,7 @@ function parseDuration(val) {
   if (typeof val === 'number') return val;
   if (!val) return 60;
   const str = String(val);
+  if (/^\d+$/.test(str)) return Number(str);
   const hoursMatch = str.match(/(\d+)\s*h/);
   const minsMatch = str.match(/(\d+)\s*m/);
   const hours = hoursMatch ? parseInt(hoursMatch[1]) : 0;
@@ -96,6 +104,7 @@ const getPublicItineraries = async (req, res) => {
     const { search, destination, tags, sort = '-createdAt', page = 1, limit = 20 } = req.query;
 
     const filter = { isPublic: true };
+    if (req.query.author) filter.author = req.query.author;
 
     if (search) {
       filter.$text = { $search: search };
@@ -107,7 +116,12 @@ const getPublicItineraries = async (req, res) => {
       filter.tags = { $in: tags.split(',') };
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const pageNumber = Number(page);
+    const pageSize = Number(limit);
+    if (!Number.isInteger(pageNumber) || pageNumber < 1 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+      return res.status(400).json({ message: 'Page must be a positive integer; limit must be between 1 and 100' });
+    }
+    const skip = (pageNumber - 1) * pageSize;
 
     const [templates, total] = await Promise.all([
       Template.find(filter).sort(sort).skip(skip).limit(Number(limit)),
@@ -116,7 +130,7 @@ const getPublicItineraries = async (req, res) => {
 
     res.json({ templates, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
   } catch (error) {
-    res.status(500).json({ message: 'Server error fetching itineraries' });
+    controllerError(res, error, 'Server error fetching itineraries');
   }
 };
 
@@ -126,8 +140,8 @@ const getPublicItineraries = async (req, res) => {
 const getPublicItineraryById = async (req, res) => {
   try {
     const Template = require('../models/Template');
-    const template = await Template.findByIdAndUpdate(
-      req.params.id,
+    const template = await Template.findOneAndUpdate(
+      { _id: req.params.id, isPublic: true },
       { $inc: { views: 1 } },
       { new: true }
     ).populate('author', 'name avatar');
@@ -135,7 +149,7 @@ const getPublicItineraryById = async (req, res) => {
     if (!template) return res.status(404).json({ message: 'Itinerary not found' });
     res.json(template);
   } catch (error) {
-    res.status(500).json({ message: 'Server error fetching itinerary' });
+    controllerError(res, error, 'Server error fetching itinerary');
   }
 };
 

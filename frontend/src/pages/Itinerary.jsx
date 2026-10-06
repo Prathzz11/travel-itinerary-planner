@@ -1,3 +1,4 @@
+import { useTripPermissions } from '../hooks/useTripPermissions';
 import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { MapPin, Calendar as CalendarIcon, Plus, Search, Filter, Trash2, Edit2, ChevronDown, ChevronUp, IndianRupee, User, Printer, CheckCircle, Circle, GripVertical, FileDown } from 'lucide-react';
@@ -15,14 +16,15 @@ import InteractiveMap from '../components/map/InteractiveMap';
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 
-const CATEGORIES = ['All', 'Sightseeing', 'Dining', 'Transport', 'Accommodation', 'Shopping', 'Entertainment', 'Sports', 'Other'];
+const CATEGORIES = ['All', 'Sightseeing', 'Food & Dining', 'Transportation', 'Accommodation', 'Shopping', 'Entertainment', 'Sports', 'Other'];
 
 const Itinerary = () => {
   const { id } = useParams();
   const { trips } = useTrip();
-  const { getItinerary, addActivity, updateActivity, deleteActivity, reorderActivities, itineraryCache } = useContext(ItineraryContext);
+  const { getItinerary, addActivity, updateActivity, deleteActivity, itineraryCache } = useContext(ItineraryContext);
   
   const trip = trips?.find(t => (t._id || t.id) === id);
+  const { canEdit } = useTripPermissions(trip);
   const [itineraryDoc, setItineraryDoc] = useState(null);
   const [itineraryLoading, setItineraryLoading] = useState(true);
 
@@ -42,7 +44,7 @@ const Itinerary = () => {
   }, [itineraryCache, id]);
 
   // itineraryDays is the days array from the MongoDB doc
-  const itineraryDays = itineraryDoc?.days || [];
+  const itineraryDays = useMemo(() => itineraryDoc?.days || [], [itineraryDoc?.days]);
 
   const [activeDay, setActiveDay] = useState(null);
   const [viewMode, setViewMode] = useLocalStorage('itinerary_viewMode', 'timeline');
@@ -50,7 +52,7 @@ const Itinerary = () => {
   const debouncedSearch = useDebounce(search, 500);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [expandedActivity, setExpandedActivity] = useState(null);
-  const [completedActivities, setCompletedActivities] = useLocalStorage('itinerary_completed', {});
+  const completedActivities = Object.fromEntries(itineraryDays.flatMap(day => day.activities.map(activity => [activity._id, activity.completed])));
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
@@ -62,7 +64,10 @@ const Itinerary = () => {
     }
   }, [itineraryDays, activeDay]);
 
-  const toggleComplete = (actId) => setCompletedActivities(prev => ({ ...prev, [actId]: !prev[actId] }));
+  const toggleComplete = async (actId) => {
+    try { await updateActivity(id, activeDay, actId, { completed: !completedActivities[actId] }); }
+    catch { /* Context displays the error. */ }
+  };
 
   // Derive currentDay and filteredActivities BEFORE any early returns (Rules of Hooks)
   const currentDay = itineraryDays.find(d => d.date === activeDay);
@@ -78,9 +83,9 @@ const Itinerary = () => {
     });
   }, [currentDay, debouncedSearch, categoryFilter]);
 
-  const handleSaveActivity = (data) => {
-    if (editingActivity) updateActivity(id, activeDay, editingActivity._id || editingActivity.id, data);
-    else addActivity(id, activeDay, data);
+  const handleSaveActivity = async (data) => {
+    if (editingActivity) await updateActivity(id, activeDay, editingActivity._id || editingActivity.id, data);
+    else await addActivity(id, activeDay, data);
     setIsModalOpen(false);
     setEditingActivity(null);
   };
@@ -163,6 +168,7 @@ const Itinerary = () => {
 
           {/* Main Content */}
           <div className="flex-grow-1 d-flex flex-column overflow-hidden">
+            {viewMode !== 'calendar' && <label className="d-md-none p-3">Day<select aria-label="Itinerary day" className="form-select" value={activeDay || ''} onChange={e => setActiveDay(e.target.value)}>{itineraryDays.map((day,index) => <option key={day.date} value={day.date}>Day {index+1} — {day.date}</option>)}</select></label>}
             {/* Toolbar */}
             <div className="p-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-3 no-print">
               <div className="btn-group btn-group-sm">
@@ -176,7 +182,7 @@ const Itinerary = () => {
                   <select className="form-select form-select-sm" style={{ maxWidth: 150 }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
                     {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
-                  <button className="btn btn-primary btn-sm d-flex align-items-center gap-1" onClick={() => { setEditingActivity(null); setIsModalOpen(true); }}><Plus size={16} /> Add</button>
+                  <button disabled={!canEdit} className="btn btn-primary btn-sm d-flex align-items-center gap-1" onClick={() => { setEditingActivity(null); setIsModalOpen(true); }}><Plus size={16} /> Add</button>
                 </div>
               )}
             </div>
@@ -187,7 +193,7 @@ const Itinerary = () => {
                 <div className="d-flex flex-column gap-3 position-relative">
                   {filteredActivities.length === 0 && (
                     <div className="mt-4">
-                      <EmptyState icon={search || categoryFilter !== 'All' ? Search : CalendarIcon} title={search || categoryFilter !== 'All' ? "No activities found" : "No activities planned"} message={search || categoryFilter !== 'All' ? `No activities match your filters.` : "Add an activity to get started!"} actionLabel={search || categoryFilter !== 'All' ? "Clear Filters" : "Add Activity"} actionIcon={search || categoryFilter !== 'All' ? null : Plus} onAction={() => { if (search || categoryFilter !== 'All') { setSearch(''); setCategoryFilter('All'); } else { setEditingActivity(null); setIsModalOpen(true); }}} />
+                      <EmptyState icon={search || categoryFilter !== 'All' ? Search : CalendarIcon} title={search || categoryFilter !== 'All' ? "No activities found" : "No activities planned"} message={search || categoryFilter !== 'All' ? `No activities match your filters.` : "Add an activity to get started!"} actionLabel={search || categoryFilter !== 'All' ? "Clear Filters" : "Add Activity"} actionIcon={search || categoryFilter !== 'All' ? null : Plus} onAction={() => { if (search || categoryFilter !== 'All') { setSearch(''); setCategoryFilter('All'); } else if (canEdit) { setEditingActivity(null); setIsModalOpen(true); }}} />
                     </div>
                   )}
                   
@@ -218,9 +224,9 @@ const Itinerary = () => {
                                 </div>
                               </div>
                               <div className="d-flex align-items-center gap-2">
-                                <button className="btn btn-link p-0" onClick={e => { e.stopPropagation(); toggleComplete(actId); }} style={{ color: completedActivities[actId] ? 'var(--color-success)' : 'var(--color-text-muted)' }}>{completedActivities[actId] ? <CheckCircle size={18} /> : <Circle size={18} />}</button>
-                                <button className="btn btn-link p-0 text-muted" onClick={e => handleEdit(e, act)}><Edit2 size={14} /></button>
-                                <button className="btn btn-link p-0 text-danger" onClick={e => handleDelete(e, actId)}><Trash2 size={14} /></button>
+                                <button disabled={!canEdit} className="btn btn-link p-0" aria-label="Toggle activity completion" aria-pressed={!!completedActivities[actId]} onClick={e => { e.stopPropagation(); toggleComplete(actId); }} style={{ color: completedActivities[actId] ? 'var(--color-success)' : 'var(--color-text-muted)' }}>{completedActivities[actId] ? <CheckCircle size={18} /> : <Circle size={18} />}</button>
+                                <button disabled={!canEdit} className="btn btn-link p-0 text-muted" aria-label="Edit activity" onClick={e => handleEdit(e, act)}><Edit2 size={14} /></button>
+                                <button disabled={!canEdit} className="btn btn-link p-0 text-danger" aria-label="Delete activity" onClick={e => handleDelete(e, actId)}><Trash2 size={14} /></button>
                                 {isExpanded ? <ChevronUp size={18} className="text-muted" /> : <ChevronDown size={18} className="text-muted" />}
                               </div>
                             </div>
@@ -280,7 +286,7 @@ const Itinerary = () => {
       </div>
 
       <ActivityModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingActivity(null); }} onSave={handleSaveActivity} initialData={editingActivity} />
-      <ConfirmDialog isOpen={!!confirmDelete} title="Delete Activity?" message="This activity will be permanently removed." confirmLabel="Delete" onConfirm={() => { deleteActivity(id, activeDay, confirmDelete); setConfirmDelete(null); }} onCancel={() => setConfirmDelete(null)} />
+      <ConfirmDialog isOpen={!!confirmDelete} title="Delete Activity?" message="This activity will be permanently removed." confirmLabel="Delete" onConfirm={async () => { await deleteActivity(id, activeDay, confirmDelete); setConfirmDelete(null); }} onCancel={() => { setConfirmDelete(null); }} />
     </div>
   );
 };

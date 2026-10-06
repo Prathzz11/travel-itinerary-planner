@@ -1,26 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { X, IndianRupee, Tag, Calendar, FileText, Image as ImageIcon, Users } from 'lucide-react';
-import { useParams } from 'react-router-dom';
-import { useLocalStorage } from '../../hooks/useLocalStorage';
+
+const localDate = value => { const d = value ? new Date(value) : new Date(); if (!Number.isFinite(+d)) return ''; d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,16); };
 
 const CATEGORIES = ['Accommodation', 'Food', 'Transport', 'Activities', 'Shopping', 'Other'];
 
-const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null }) => {
+const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, currency = 'INR', initialData = null }) => {
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const defaultForm = {
-    description: '', amount: 0, category: 'Food', date: new Date().toISOString().slice(0, 16),
+    description: '', amount: 0, category: 'Food', date: localDate(),
     paidBy: (tripMembers?.[0]?._id || tripMembers?.[0]?.id)?.toString() || '', splitType: 'equal', splits: [], receiptImage: '', notes: ''
   };
 
-  const [form, setForm] = useLocalStorage('expense_draft', defaultForm);
+  const [form, setForm] = useState(defaultForm);
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [customSplits, setCustomSplits] = useState({});
 
   useEffect(() => {
+    if (!isOpen) return;
     if (initialData) {
       setForm({ 
         ...initialData, 
-        date: initialData.date ? initialData.date.slice(0, 16) : new Date().toISOString().slice(0, 16),
-        paidBy: initialData.paidBy?.memberId || initialData.paidBy?.userId || initialData.paidBy || ''
+        date: localDate(initialData.date),
+        paidBy: tripMembers.find(m => [m._id, m.id, m.user].filter(Boolean).map(String).includes(String(initialData.paidBy?.userId || '')))?._id || initialData.paidBy?.userId || '',
+        splitType: initialData.splitType || 'custom',
+        receiptImage: initialData.receipt || ''
       });
       
       const splitsArr = initialData.splitAmong || initialData.splits || [];
@@ -42,14 +47,17 @@ const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null
         });
         setCustomSplits(cs);
       }
+    } else {
+      setForm({ description: '', amount: 0, category: 'Food', date: localDate(), paidBy: tripMembers?.[0]?._id || '', splitType: 'equal', receiptImage: '', notes: '', currency });
+      setSelectedMembers([]); setCustomSplits({});
     }
-  }, [initialData, isOpen, tripMembers]);
+  }, [initialData, isOpen, tripMembers, currency, setForm]);
 
   if (!isOpen) return null;
 
   const handleCustomSplitChange = (memberId, value) => setCustomSplits(prev => ({ ...prev, [memberId]: Number(value) }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     let finalSplits = [];
     if (form.splitType === 'equal') {
@@ -74,17 +82,24 @@ const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null
       : { userId: form.paidBy, name: 'Unknown' };
 
     // Strip non-schema fields; map receiptImage -> receipt
-    onSave({
+    if (saving) return;
+    setSaving(true); setSaveError('');
+    try {
+    await onSave({
       description: form.description,
+      splitType: form.splitType,
       amount: Number(form.amount),
-      currency: form.currency || 'INR',
+      currency: form.currency || currency,
       category: form.category,
       paidBy: paidByObj,
       splitAmong: finalSplits.map(s => ({ userId: s.userId, name: s.name, share: s.share })),
-      date: form.date,
+      date: new Date(form.date).toISOString(),
+      notes: form.notes || '',
       receipt: form.receiptImage || form.receipt || ''
     });
     if (!initialData) { setForm(defaultForm); localStorage.removeItem('expense_draft'); }
+    } catch (error) { setSaveError(error.userMessage || error.message || 'Could not save'); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -98,6 +113,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null
               <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
             </div>
             <div className="modal-body">
+              {saveError && <div className="alert alert-danger" role="alert">{saveError}</div>}
               <form id="expenseForm" onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label className="form-label text-muted">Description</label>
@@ -138,7 +154,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, tripMembers, initialData = null
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
-              <button type="submit" form="expenseForm" className="btn btn-success">{initialData ? 'Save Changes' : 'Add Expense'}</button>
+              <button disabled={saving} type="submit" form="expenseForm" className="btn btn-success">{initialData ? 'Save Changes' : 'Add Expense'}</button>
             </div>
           </div>
         </div>

@@ -6,7 +6,10 @@
   "type": "commonjs",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "node --test test/*.test.js",
+    "seed:explore": "node seed_explore.js",
+    "test:integration": "node test/integration.cjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

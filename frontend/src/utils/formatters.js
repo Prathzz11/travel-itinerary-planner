@@ -69,7 +69,7 @@ export const getTripDuration = (startDate, endDate) => {
   const end = new Date(endDate);
   const diffMs = end - start;
   if (diffMs < 0) return null;
-  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
   if (days === 0) return '1 day';
   if (days === 1) return '1 day';
   if (days < 7) return `${days} days`;

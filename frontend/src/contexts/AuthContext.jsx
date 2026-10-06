@@ -45,6 +45,8 @@ export const AuthProvider = ({ children }) => {
       const response = await apiLogin(credentials);
       const { token, user: userData } = response.data;
       
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
       if (rememberMe) {
         localStorage.setItem('token', token);
       } else {
@@ -68,6 +70,7 @@ export const AuthProvider = ({ children }) => {
       const response = await apiSignup(data);
       const { token, user: userData } = response.data;
       
+      sessionStorage.removeItem('token');
       localStorage.setItem('token', token); // Default remember for signup
       setUser(userData);
       return userData;
@@ -87,11 +90,6 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = useCallback(async (updates) => {
     try {
-      // Optimitically update locally
-      setUser(prev => {
-        if (!prev) return null;
-        return { ...prev, ...updates };
-      });
       // Persist to backend
       const response = await apiUpdateMe(updates);
       // Ensure local state exactly matches backend response

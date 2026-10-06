@@ -1,4 +1,6 @@
-import React, { createContext, useState, useCallback, useMemo } from 'react';
+import { isEditing } from '../utils/autoRefresh';
+import React, { createContext, useState, useCallback, useMemo, useRef } from 'react';
+import { useTrip } from '../hooks/useTrip';
 import { useNotification } from './NotificationContext';
 import { getItinerary as apiGetItinerary, updateItinerary as apiUpdateItinerary } from '../services/itineraryService';
 
@@ -6,39 +8,44 @@ export const ItineraryContext = createContext();
 
 export const ItineraryProvider = ({ children }) => {
   const { addNotification } = useNotification();
+  const versions = useRef({});
+  const bump = id => { versions.current[id] = (versions.current[id] || 0) + 1; return versions.current[id]; };
+  const { refreshTrips } = useTrip();
 
   // Cache: { [tripId]: itineraryDoc }
   const [itineraryCache, setItineraryCache] = useState({});
   const [loadingMap, setLoadingMap] = useState({});
 
-  const getItinerary = useCallback(async (tripId) => {
-    if (itineraryCache[tripId]) return itineraryCache[tripId];
+  const getItinerary = useCallback(async (tripId, { silent = false } = {}) => {
+    const version = bump(tripId);
 
-    setLoadingMap(prev => ({ ...prev, [tripId]: true }));
+    if (!silent) setLoadingMap(prev => ({ ...prev, [tripId]: true }));
     try {
       const res = await apiGetItinerary(tripId);
-      setItineraryCache(prev => ({ ...prev, [tripId]: res.data }));
+      if (versions.current[tripId] === version && !(silent && isEditing(document))) setItineraryCache(prev => ({ ...prev, [tripId]: res.data }));
       return res.data;
     } catch (err) {
       console.error('Failed to fetch itinerary:', err);
-      addNotification(err.userMessage || 'Failed to load Flight Plan', 'error');
+      if (!silent) addNotification(err.userMessage || 'Failed to load Trip Plan', 'error');
       return null;
     } finally {
-      setLoadingMap(prev => ({ ...prev, [tripId]: false }));
+      if (!silent) setLoadingMap(prev => ({ ...prev, [tripId]: false }));
     }
-  }, [itineraryCache]);
+  }, [addNotification]);
 
   // Persist entire days array to server
   const saveItinerary = useCallback(async (tripId, days, notes = '') => {
     try {
       const res = await apiUpdateItinerary(tripId, { days, notes });
+      bump(tripId);
       setItineraryCache(prev => ({ ...prev, [tripId]: res.data }));
+      await refreshTrips();
       return res.data;
     } catch (err) {
       addNotification('Failed to save itinerary', 'error');
       throw err;
     }
-  }, [addNotification]);
+  }, [addNotification, refreshTrips]);
 
   const addActivity = useCallback(async (tripId, dayDate, activityData) => {
     const current = itineraryCache[tripId];

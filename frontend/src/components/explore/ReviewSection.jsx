@@ -2,24 +2,28 @@ import React, { useState, useContext, useMemo } from 'react';
 import { Star, ThumbsUp, MessageSquare, Edit2, Trash2, X } from 'lucide-react';
 import { ExploreContext } from '../../contexts/ExploreContext';
 import { useAuth } from '../../hooks/useAuth';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 const ReviewSection = ({ tripId }) => {
   const { getTripReviews, addReview, editReview, deleteReview, toggleHelpful } = useContext(ExploreContext);
   const { user } = useAuth();
   const reviews = getTripReviews(tripId);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [hoverRating, setHoverRating] = useState(0);
+  const [confirmDeleteReviewId, setConfirmDeleteReviewId] = useState(null);
 
   const avgRating = reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : 0;
   const ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
   reviews.forEach(r => ratingCounts[r.rating]++);
 
   const sortedReviews = useMemo(() => [...reviews].sort((a, b) => {
-    if (sortBy === 'newest') return new Date(b.date) - new Date(a.date);
+    if (sortBy === 'newest') return new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date);
     if (sortBy === 'helpful') return b.helpfulCount - a.helpfulCount;
     if (sortBy === 'rating_desc') return b.rating - a.rating;
     if (sortBy === 'rating_asc') return a.rating - b.rating;
@@ -27,21 +31,25 @@ const ReviewSection = ({ tripId }) => {
   }), [reviews, sortBy]);
 
   const handleOpenModal = (review = null) => {
-    if (review) { setEditingReviewId(review.id); setRating(review.rating); setComment(review.comment); }
+    if (review) { setEditingReviewId(review._id || review.id); setRating(review.rating); setComment(review.comment); }
     else { setEditingReviewId(null); setRating(0); setComment(''); }
     setIsModalOpen(true);
   };
 
-  const handleSubmitReview = (e) => {
+  const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (rating === 0) return alert('Please select a star rating.');
-    if (editingReviewId) editReview(editingReviewId, tripId, { rating, comment });
-    else addReview(tripId, { author: { id: user?.id || 'm1', name: user?.name || 'Current User', avatar: user?.avatar || 'https://i.pravatar.cc/150?u=m1' }, rating, comment });
-    setIsModalOpen(false);
+    if (saving) return;
+    if (!rating) { setError('Select a star rating'); return; }
+    setSaving(true); setError('');
+    try {
+      if (editingReviewId) await editReview(editingReviewId, tripId, { rating, comment });
+      else await addReview(tripId, { rating, comment });
+      setIsModalOpen(false);
+    } catch (err) { setError(err.userMessage || err.message); }
+    finally { setSaving(false); }
   };
-
-  const handleDelete = (id) => { if (window.confirm('Delete your review?')) deleteReview(id); };
-  const userExistingReview = reviews.find(r => r.author.id === (user?.id || 'm1'));
+  const handleDeleteClick = (_event, id) => setConfirmDeleteReviewId(id);
+  const userExistingReview = reviews.find(r => String(r.author?._id || r.author?.id || r.author) === String(user?.id || user?._id));
 
   return (
     <div className="mt-5">
@@ -63,7 +71,7 @@ const ReviewSection = ({ tripId }) => {
           {userExistingReview ? (
             <div><p className="text-muted small mb-2">You've already reviewed.</p><button className="btn btn-outline-primary btn-sm" onClick={() => handleOpenModal(userExistingReview)}>Edit Your Review</button></div>
           ) : (
-            <button className="btn btn-primary" onClick={() => handleOpenModal()}>Write a Review</button>
+            <button className="btn btn-primary" disabled={!user} onClick={() => handleOpenModal()}>{user ? 'Write a Review' : 'Sign in to review'}</button>
           )}
         </div>
       </div></div>
@@ -86,25 +94,32 @@ const ReviewSection = ({ tripId }) => {
             <h3 className="text-muted">No reviews yet</h3><p className="text-muted">Be the first to share your experience!</p>
           </div>
         ) : sortedReviews.map(review => {
-          const isMine = review.author.id === (user?.id || 'm1');
+          const reviewId = review._id || review.id;
+          const authorId = review.author?._id || review.author?.id || review.author;
+          const authorName = review.authorName || review.author?.name || 'Unknown';
+          const authorAvatar = review.authorAvatar || review.author?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=1e3a5f&color=38bdf8`;
+          const date = review.createdAt || review.date;
+
+          const isMine = authorId === (user?._id || user?.id || 'm1');
+
           return (
-            <div key={review.id} className="card animate-fade-in">
+            <div key={reviewId} className="card animate-fade-in">
               <div className="card-body d-flex gap-3">
-                <img src={review.author.avatar} alt={review.author.name} className="rounded-circle" style={{ width: 48, height: 48, objectFit: 'cover' }} />
+                <img src={authorAvatar} alt={authorName} className="rounded-circle" style={{ width: 48, height: 48, objectFit: 'cover' }} />
                 <div className="flex-grow-1">
                   <div className="d-flex justify-content-between align-items-start mb-1">
                     <div>
-                      <span className="fw-bold">{review.author.name}</span>{isMine && <span className="badge bg-primary ms-2 small">You</span>}
-                      <div className="text-muted small">{new Date(review.date).toLocaleDateString()}</div>
+                      <span className="fw-bold">{authorName}</span>{isMine && <span className="badge bg-primary ms-2 small">You</span>}
+                      <div className="text-muted small">{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>
                     </div>
                     <div className="d-flex gap-1" style={{ color: '#fbbf24' }}>{[1,2,3,4,5].map(i => <Star key={i} size={14} fill={i <= review.rating ? '#fbbf24' : 'transparent'} />)}</div>
                   </div>
                   <p className="mb-2" style={{ lineHeight: 1.6 }}>{review.comment}</p>
                   <div className="d-flex justify-content-between align-items-center">
-                    <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" onClick={() => toggleHelpful(review.id)}><ThumbsUp size={14} /> Helpful ({review.helpfulCount})</button>
+                    <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" disabled={!user} onClick={() => toggleHelpful(reviewId, tripId)}><ThumbsUp size={14} /> Helpful ({review.helpfulCount || 0})</button>
                     {isMine && <div className="d-flex gap-2">
                       <button className="btn btn-link btn-sm text-muted p-0" onClick={() => handleOpenModal(review)}><Edit2 size={14} /> Edit</button>
-                      <button className="btn btn-link btn-sm text-danger p-0" onClick={() => handleDelete(review.id)}><Trash2 size={14} /> Delete</button>
+                      <button className="btn btn-link btn-sm text-danger p-0" onClick={() => handleDeleteClick(null, reviewId)}><Trash2 size={14} /> Delete</button>
                     </div>}
                   </div>
                 </div>
@@ -113,6 +128,9 @@ const ReviewSection = ({ tripId }) => {
           );
         })}
       </div>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog isOpen={!!confirmDeleteReviewId} title="Delete Review?" message="This review will be permanently removed." confirmLabel="Delete" onConfirm={async () => { await deleteReview(confirmDeleteReviewId, tripId); setConfirmDeleteReviewId(null); }} onCancel={() => { setConfirmDeleteReviewId(null); }} />
 
       {/* Review Modal */}
       {isModalOpen && (
@@ -125,12 +143,12 @@ const ReviewSection = ({ tripId }) => {
                   <h5 className="modal-title">{editingReviewId ? 'Edit Review' : 'Write a Review'}</h5>
                   <button type="button" className="btn-close btn-close-white" onClick={() => setIsModalOpen(false)}></button>
                 </div>
-                <div className="modal-body">
+                <div className="modal-body">{error && <p className="text-danger" role="alert">{error}</p>}
                   <form id="reviewForm" onSubmit={handleSubmitReview}>
                     <div className="text-center mb-4">
                       <div className="text-muted mb-2">Tap to Rate</div>
                       <div className="d-flex justify-content-center gap-2">{[1,2,3,4,5].map(star => (
-                        <Star key={star} size={40} fill={(hoverRating || rating) >= star ? '#fbbf24' : 'transparent'} color={(hoverRating || rating) >= star ? '#fbbf24' : 'var(--color-border)'} style={{ cursor: 'pointer' }} onMouseEnter={() => setHoverRating(star)} onMouseLeave={() => setHoverRating(0)} onClick={() => setRating(star)} />
+                        <Star role="button" tabIndex={0} aria-label={`${star} stars`} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setRating(star); }} key={star} size={40} fill={(hoverRating || rating) >= star ? '#fbbf24' : 'transparent'} color={(hoverRating || rating) >= star ? '#fbbf24' : 'var(--color-border)'} style={{ cursor: 'pointer' }} onMouseEnter={() => setHoverRating(star)} onMouseLeave={() => setHoverRating(0)} onClick={() => setRating(star)} />
                       ))}</div>
                     </div>
                     <div className="mb-3"><label className="form-label text-muted">Your Experience</label><textarea className="form-control" value={comment} onChange={e => setComment(e.target.value)} rows="4" placeholder="Tell us what you thought..." required /></div>
@@ -138,7 +156,7 @@ const ReviewSection = ({ tripId }) => {
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-outline-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                  <button type="submit" form="reviewForm" className="btn btn-primary">{editingReviewId ? 'Save Changes' : 'Post Review'}</button>
+                  <button disabled={saving} type="submit" form="reviewForm" className="btn btn-primary">{editingReviewId ? 'Save Changes' : 'Post Review'}</button>
                 </div>
               </div>
             </div>

@@ -18,9 +18,8 @@ const Footer = () => {
               Plan, organize, and experience your dream vacations with powerful collaborative tools.
             </p>
             <div className="d-flex gap-3">
-              <a href="#" aria-label="Website" className="text-muted"><Globe size={20} /></a>
-              <a href="#" aria-label="Instagram" className="text-muted"><Camera size={20} /></a>
-              <a href="#" aria-label="GitHub" className="text-muted"><Code2 size={20} /></a>
+
+
             </div>
           </div>
 

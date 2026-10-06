@@ -1,16 +1,14 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, IndianRupee, Users, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
 import { useForm } from '../hooks/useForm';
-import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../hooks/useAuth';
 
 const CreateTrip = () => {
   const navigate = useNavigate();
-  const { addTrip, trips } = useTrip();
+  const { addTrip } = useTrip();
   const { user } = useAuth();
-  const { addNotification } = useNotification();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,7 +24,7 @@ const CreateTrip = () => {
   }, []);
 
   const { values, errors, touched, handleChange, handleBlur, clearDraft } = useForm({
-    initialValues: { title: '', destination: '', startDate: '', endDate: '', budget: '', currency: 'INR', visibility: 'private' },
+    initialValues: { title: '', destination: '', startDate: '', endDate: '', budget: '', currency: user?.preferences?.currency || 'INR', visibility: 'private' },
     draftKey: 'create_trip_draft',
     validate,
     onSubmit: () => {}

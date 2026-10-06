@@ -70,24 +70,3 @@ export const getTripMemberName = (tripMembers = [], value, expenses = []) => {
 
   return 'Unknown';
 };
-
-export const buildTripMemberBalanceLookup = (tripMembers = []) => {
-  const lookup = new Map();
-
-  tripMembers.forEach((member) => {
-    const balance = { id: resolveMemberId(member) || member.name, name: member.name, net: 0, paid: 0, owes: 0 };
-    
-    // Alias by all known IDs
-    [member._id, member.id, member.user, member.userId]
-      .map(resolveMemberId)
-      .filter(Boolean)
-      .forEach((memberId) => lookup.set(memberId, balance));
-      
-    // Alias by name as a fallback for dummy members with changing IDs
-    if (member.name && member.name !== 'Unknown') {
-      lookup.set(member.name.toLowerCase(), balance);
-    }
-  });
-
-  return lookup;
-};

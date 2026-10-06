@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useCallback } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { MapPin, Layers, Calendar } from 'lucide-react';
 import { useTrip } from '../hooks/useTrip';
@@ -107,13 +107,13 @@ const MapPage = () => {
         <EmptyState
           icon={Calendar}
           title="No itinerary yet"
-          message="Add days and activities in the Flight Plan tab to see them on the map."
+          message="Add days and activities in the Trip Plan tab to see them on the map."
         />
       ) : !hasLocations ? (
         <EmptyState
           icon={MapPin}
           title="No mappable locations"
-          message="Add location details to your activities in the Flight Plan tab to see them plotted here."
+          message="Add location details to your activities in the Trip Plan tab to see them plotted here."
         />
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>

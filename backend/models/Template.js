@@ -15,6 +15,7 @@ const templateDaySchema = new mongoose.Schema({
 }, { _id: false });
 
 const templateSchema = new mongoose.Schema({
+  sourceTrip: { type: mongoose.Schema.Types.ObjectId, ref: 'Trip', unique: true, sparse: true },
   title: {
     type: String,
     required: true,
@@ -29,6 +30,9 @@ const templateSchema = new mongoose.Schema({
   duration: { type: Number, required: true }, // number of days
   tags: [String],
   image: { type: String, default: '' },
+  imageCredit: { name: String, url: String, license: String },
+  sources: [{ title: String, url: String, _id: false }],
+  planningTips: [String],
   difficulty: {
     type: String,
     enum: ['Easy', 'Moderate', 'Challenging'],

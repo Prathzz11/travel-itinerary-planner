@@ -36,7 +36,7 @@ const TripNav = ({ tripId }) => {
         </li>
         <li className="nav-item">
           <NavLink to={`/trip/${id}/itinerary`} className={({ isActive }) => `nav-link d-flex align-items-center gap-1 ${isActive ? 'active' : ''}`}>
-            <Map size={16} /> Flight Plan
+            <Map size={16} /> Trip Plan
           </NavLink>
         </li>
         <li className="nav-item">

@@ -7,7 +7,7 @@ const ImportTripModal = ({ onClose }) => {
   const { importTrip } = useTrip();
   const fileInputRef = useRef(null);
 
-  const [file, setFile] = useState(null);
+  const [, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [preview, setPreview] = useState(null);

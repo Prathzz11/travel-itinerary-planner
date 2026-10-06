@@ -1,3 +1,5 @@
+import TripImage from '../../components/ui/TripImage';
+import { useTripPermissions } from '../../hooks/useTripPermissions';
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, Clock, IndianRupee, Edit2, Trash2, Users } from 'lucide-react';
@@ -7,7 +9,9 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 
 const TripCard = ({ trip, onDelete }) => {
   const navigate = useNavigate();
+  const { isOwner } = useTripPermissions(trip);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAnchorRect, setConfirmAnchorRect] = useState(null);
 
   const status = useMemo(() => getTripStatus(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
   const duration = useMemo(() => getTripDuration(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
@@ -17,14 +21,14 @@ const TripCard = ({ trip, onDelete }) => {
   const memberCount = trip.members?.length || 1;
   const budgetPerPerson = trip.budget > 0 ? trip.budget / memberCount : 0;
 
-  const handleDelete = (e) => { e.preventDefault(); e.stopPropagation(); setConfirmOpen(true); };
+  const handleDelete = (e) => { e.preventDefault(); e.stopPropagation(); setConfirmAnchorRect(e.currentTarget.getBoundingClientRect()); setConfirmOpen(true); };
 
   return (
     <>
       <div className="card hover-lift position-relative" style={{ overflow: 'hidden' }}>
         {/* Image */}
         <div className="position-relative" style={{ height: 160, overflow: 'hidden' }}>
-          <img src={trip.image} alt={trip.destination} className="w-100 h-100" style={{ objectFit: 'cover' }} />
+          <TripImage src={trip.image} alt={trip.destination} className="w-100 h-100" style={{ objectFit: 'cover' }} />
           <div className="position-absolute top-0 start-0 w-100 h-100" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)' }} />
 
           {duration && (
@@ -37,9 +41,9 @@ const TripCard = ({ trip, onDelete }) => {
           </span>
 
           {/* Hover Actions */}
-          <div className="trip-card-actions position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center gap-2" style={{ background: 'rgba(0,0,0,0.4)', opacity: 0, transition: 'opacity 0.2s' }}>
+          <div className="trip-card-actions position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center gap-2" style={{ background: 'rgba(0,0,0,0.4)', zIndex: 2, opacity: 0, transition: 'opacity 0.2s' }}>
             <button className="btn btn-primary btn-sm rounded-circle p-2" onClick={(e) => { e.preventDefault(); navigate(`/trip/${trip._id || trip.id}`); }} aria-label="Open trip"><Edit2 size={16} /></button>
-            <button className="btn btn-danger btn-sm rounded-circle p-2" onClick={handleDelete} aria-label="Delete trip"><Trash2 size={16} /></button>
+            <button className="btn btn-danger btn-sm rounded-circle p-2" disabled={!isOwner} onClick={handleDelete} aria-label="Delete trip"><Trash2 size={16} /></button>
           </div>
         </div>
 
@@ -60,7 +64,7 @@ const TripCard = ({ trip, onDelete }) => {
               })}
               {trip.members?.length > 3 && <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 24, height: 24, marginLeft: -8, zIndex: 7, background: 'var(--color-surface)', fontSize: '0.65rem', fontWeight: 'bold', border: '2px solid var(--bs-body-bg)' }}>+{trip.members.length - 3}</div>}
             </div>
-            {budgetPerPerson > 0 && <div className="text-muted d-flex align-items-center gap-1" style={{ fontSize: '0.78rem' }}><Users size={11} /> {formatCurrency(budgetPerPerson)}/ea</div>}
+            {budgetPerPerson > 0 && <div className="text-muted d-flex align-items-center gap-1" style={{ fontSize: '0.78rem' }}><Users size={11} /> {formatCurrency(budgetPerPerson, trip.currency)}/ea</div>}
           </div>
 
           {/* Budget Bar */}
@@ -82,7 +86,7 @@ const TripCard = ({ trip, onDelete }) => {
         <style>{`.card:hover .trip-card-actions { opacity: 1 !important; }`}</style>
       </div>
 
-      <ConfirmDialog isOpen={confirmOpen} title={`Delete "${trip.title}"?`} message="This action is permanent and cannot be undone." confirmLabel="Delete Trip" onConfirm={() => { setConfirmOpen(false); if (onDelete) onDelete(trip._id || trip.id); }} onCancel={() => setConfirmOpen(false)} />
+      <ConfirmDialog anchorRect={confirmAnchorRect} isOpen={confirmOpen} title={`Delete "${trip.title}"?`} message="This action is permanent and cannot be undone." confirmLabel="Delete Trip" onConfirm={async () => { if (onDelete) await onDelete(trip._id || trip.id); setConfirmOpen(false); }} onCancel={() => { setConfirmOpen(false); }} />
     </>
   );
 };

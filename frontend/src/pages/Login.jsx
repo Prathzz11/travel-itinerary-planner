@@ -96,9 +96,7 @@ const Login = () => {
                 <input className="form-check-input" type="checkbox" id="rememberMe" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
                 <label className="form-check-label text-muted" htmlFor="rememberMe">Remember me</label>
               </div>
-              <a href="#" className="text-decoration-none" style={{ color: 'var(--color-primary)' }} onClick={(e) => { e.preventDefault(); alert('Forgot password flow coming soon'); }}>
-                Forgot password?
-              </a>
+
             </div>
 
             <LoadingButton type="submit" isLoading={loading} disabled={!isValid} loadingText="Logging in..." style={{ width: '100%' }}>

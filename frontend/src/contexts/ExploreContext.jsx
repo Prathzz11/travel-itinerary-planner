@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useRef, useCallback } from 'react';
 import { getPublicItineraries } from '../services/itineraryService';
 import {
   getReviewsForTemplate,
@@ -14,6 +14,7 @@ export const ExploreContext = createContext();
 export const ExploreProvider = ({ children }) => {
   const { addNotification } = useNotification();
   
+  const requestSequence = useRef(0);
   const [publicTrips, setPublicTrips] = useState([]);
   const [exploreLoading, setExploreLoading] = useState(false);
   const [exploreError, setExploreError] = useState(null);
@@ -23,41 +24,21 @@ export const ExploreProvider = ({ children }) => {
   const [reviewsCache, setReviewsCache] = useState({});
 
   const fetchPublicTrips = useCallback(async (params = {}) => {
+    const sequence = ++requestSequence.current;
     setExploreLoading(true);
     setExploreError(null);
     try {
       const res = await getPublicItineraries(params);
+      if (sequence !== requestSequence.current) return;
       const { templates, total, page, pages } = res.data;
       setPublicTrips(templates);
       setPagination({ page, pages, total });
     } catch (err) {
       console.error('Failed to load public itineraries:', err);
-      setExploreError('Failed to load itineraries. Please try again.');
+      if (sequence === requestSequence.current) setExploreError('Failed to load itineraries. Please try again.');
     } finally {
-      setExploreLoading(false);
+      if (sequence === requestSequence.current) setExploreLoading(false);
     }
-  }, []);
-
-  // Load on mount
-  useEffect(() => {
-    fetchPublicTrips();
-  }, [fetchPublicTrips]);
-
-  const getTripById = useCallback((id) => publicTrips.find(t => t._id === id || t.id === id), [publicTrips]);
-  const getTripsByUser = useCallback((userId) => publicTrips.filter(t => t.author?.toString() === userId || t.authorId === userId), [publicTrips]);
-
-  const forkTrip = useCallback((id) => {
-    setPublicTrips(prev => prev.map(t => (t._id === id || t.id === id) ? { ...t, forks: (t.forks || 0) + 1 } : t));
-  }, []);
-
-  const publishTrip = useCallback((tripData) => {
-    const newTrip = {
-      ...tripData,
-      rating: 0,
-      forks: 0,
-      createdAt: new Date().toISOString()
-    };
-    setPublicTrips(prev => [newTrip, ...prev]);
   }, []);
 
   // --- Reviews Methods ---
@@ -149,10 +130,6 @@ export const ExploreProvider = ({ children }) => {
       exploreError,
       pagination,
       fetchPublicTrips,
-      getTripById,
-      getTripsByUser,
-      forkTrip,
-      publishTrip,
       // Review exports
       loadTripReviews,
       getTripReviews,

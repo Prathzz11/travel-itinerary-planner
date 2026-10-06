@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import TripAutoRefresh from './components/trip/TripAutoRefresh';
 import Layout from './components/layout/Layout';
 
 import { AuthProvider } from './contexts/AuthContext';
@@ -58,16 +59,19 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   return children;
 };
 
+function AuthenticatedData({ children }) {
+  const { user } = useAuth();
+  return <TripProvider key={user?.id || "anonymous"}><ItineraryProvider><BookingProvider><ExpenseProvider>{children}</ExpenseProvider></BookingProvider></ItineraryProvider></TripProvider>;
+}
+
 function App() {
   return (
     <NotificationProvider>
       <AuthProvider>
       <ExploreProvider>
-        <TripProvider>
-          <ItineraryProvider>
-            <BookingProvider>
-              <ExpenseProvider>
+        <AuthenticatedData>
                 <Router>
+                  <TripAutoRefresh />
                   <Routes>
                 <Route path="/" element={<Layout />}>
                   {/* Wrap Routes with Suspense for lazy loading fallback */}
@@ -106,10 +110,7 @@ function App() {
               </Routes>
               <NotificationContainer />
             </Router>
-            </ExpenseProvider>
-          </BookingProvider>
-        </ItineraryProvider>
-        </TripProvider>
+        </AuthenticatedData>
       </ExploreProvider>
     </AuthProvider>
     </NotificationProvider>

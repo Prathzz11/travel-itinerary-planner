@@ -1,32 +1,47 @@
+import PlanReferences from '../components/trip/PlanReferences';
+import TripImage from '../components/ui/TripImage';
 import React, { useContext, useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Copy, Star, MapPin, Clock, IndianRupee, Activity, Tag, ArrowLeft, X, CheckCircle, List, Home as HomeIcon, CreditCard, FileJson, Download } from 'lucide-react';
 import { ExploreContext } from '../contexts/ExploreContext';
 import { TripContext } from '../contexts/TripContext';
 import { useAuth } from '../contexts/AuthContext';
+import { getPublicItineraryById } from '../services/itineraryService';
 import ReviewSection from '../components/explore/ReviewSection';
 
 const ExistingItineraryDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getTripById, forkTrip, getTripReviews, loadTripReviews } = useContext(ExploreContext);
-  const { trips, setTrips, importTrip } = useContext(TripContext);
-  const trip = getTripById(id);
+  const { getTripReviews, loadTripReviews } = useContext(ExploreContext);
+  const { importTrip } = useContext(TripContext);
+  const [trip, setTrip] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setLoadError('');
+    getPublicItineraryById(id).then(({ data }) => { if (active) setTrip(data); })
+      .catch(error => { if (active) setLoadError(error.userMessage || 'Could not load itinerary'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [id]);
   const reviews = trip ? getTripReviews(trip._id || trip.id) : [];
   const avgRating = reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : trip?.rating || 0;
 
   const { user, logView } = useAuth();
 
+  const userId = user?.id;
+  const templateId = trip?._id || trip?.id;
   useEffect(() => {
-    if (trip && (trip._id || trip.id)) {
-      logView(trip._id || trip.id);
-      loadTripReviews(trip._id || trip.id);
+    if (templateId) {
+      if (userId) logView(templateId);
+      loadTripReviews(templateId);
     }
-  }, [trip?._id, trip?.id, logView, loadTripReviews]);
+  }, [templateId, userId, logView, loadTripReviews]);
 
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [step, setStep] = useState(1);
-  const [config, setConfig] = useState({ title: `${trip?.title || 'Trip'} (Copy)`, startDate: '', endDate: '', budget: trip?.budget || 0, includeActivities: true, includeBookings: true, includeExpenses: false });
+  const [config, setConfig] = useState({ title: `${trip?.title || 'Trip'} (Copy)`, startDate: '', endDate: '', budget: trip?.budget || 0, includeActivities: true });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -35,16 +50,20 @@ const ExistingItineraryDetail = () => {
     }
   }, [isWizardOpen]);
 
+  if (loading) return <div className="page-container">Loading itinerary...</div>;
+  if (loadError) return <div className="page-container" role="alert">{loadError}</div>;
   if (!trip) return <div className="page-container"><div className="card text-center py-5"><h2>Itinerary not found</h2></div></div>;
 
   const handleFork = async () => {
+    if (!user) { navigate('/login'); return; }
+    if (isSaving) return;
     setIsSaving(true);
     try {
-      forkTrip(id); // Increment forks count locally/API
       
       const tripData = {
         title: config.title,
         destination: trip.destination,
+        image: trip.image, imageCredit: trip.imageCredit, sources: trip.sources, planningTips: trip.planningTips,
         startDate: config.startDate,
         endDate: config.endDate,
         budget: Number(config.budget),
@@ -66,7 +85,7 @@ const ExistingItineraryDetail = () => {
   };
 
   const handleDownloadSource = () => {
-    // Generate a sanitized JSON of the trip data as the "original source document"
+    // Export the editable plan, including attribution.
     const sourceData = {
       title: trip.title,
       destination: trip.destination,
@@ -75,13 +94,14 @@ const ExistingItineraryDetail = () => {
       currency: trip.currency || 'INR',
       difficulty: trip.difficulty,
       tags: trip.tags || [],
+      image: trip.image, imageCredit: trip.imageCredit, sources: trip.sources, planningTips: trip.planningTips,
       days: trip.days || []
     };
     
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sourceData, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `${trip.title.replace(/\\s+/g, '_')}_Original_Source.json`);
+    downloadAnchorNode.setAttribute("download", `${trip.title.replace(/\s+/g, '_')}_Itinerary.json`);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
@@ -94,18 +114,18 @@ const ExistingItineraryDetail = () => {
       <div className="card" style={{ overflow: 'hidden' }}>
         {/* Hero */}
         <div className="position-relative" style={{ height: 350 }}>
-          <img src={trip.image} alt={trip.title} className="w-100 h-100" style={{ objectFit: 'cover' }} />
+          <TripImage src={trip.image} alt={trip.title} className="w-100 h-100" style={{ objectFit: 'cover' }} />
           <div className="position-absolute top-0 start-0 w-100 h-100" style={{ background: 'linear-gradient(to top, rgba(15,23,42,0.9) 0%, rgba(0,0,0,0.2) 100%)' }} />
           <div className="position-absolute bottom-0 start-0 end-0 p-4 d-flex justify-content-between align-items-end">
             <div>
               <div className="d-flex gap-2 mb-2">
                 <span className="badge d-flex align-items-center gap-1" style={{ background: 'rgba(251,191,36,0.2)', color: '#fbbf24' }}><Star size={14} fill="#fbbf24" /> {avgRating} ({reviews.length})</span>
-                <span className="badge d-flex align-items-center gap-1" style={{ background: 'rgba(56,189,248,0.2)', color: 'var(--color-primary)' }}><Copy size={14} /> {trip.forks} Forks</span>
+                <span className="badge d-flex align-items-center gap-1" style={{ background: 'rgba(56,189,248,0.2)', color: 'var(--color-primary)' }}><Copy size={14} /> {trip.views || 0} Views</span>
               </div>
               <h1 className="display-5 fw-bold mb-1" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>{trip.title}</h1>
               <p className="fs-5 d-flex align-items-center gap-1 mb-0" style={{ color: 'rgba(255,255,255,0.9)' }}><MapPin size={18} /> {trip.destination}</p>
             </div>
-            <button className="btn btn-primary btn-lg d-flex align-items-center gap-2 fw-bold" style={{ boxShadow: '0 4px 12px rgba(56,189,248,0.4)' }} onClick={() => setIsWizardOpen(true)}><Copy size={20} /> Copy to My Trips</button>
+            <button className="btn btn-primary btn-lg d-flex align-items-center gap-2 fw-bold" style={{ boxShadow: '0 4px 12px rgba(56,189,248,0.4)' }} onClick={() => { if (!user) { navigate('/login'); return; } setConfig({ title: `${trip.title} (Copy)`, startDate: '', endDate: '', budget: trip.estimatedBudget || 0, includeActivities: true }); setStep(1); setIsWizardOpen(true); }}><Copy size={20} /> Copy to My Trips</button>
           </div>
         </div>
 
@@ -113,6 +133,7 @@ const ExistingItineraryDetail = () => {
           <div className="row g-4">
             <div className="col-md-8 d-flex flex-column gap-4">
               <section><h4 className="d-flex align-items-center gap-2"><Activity size={18} color="var(--color-primary)" /> About this Route</h4><p className="text-muted" style={{ lineHeight: 1.7 }}>{trip.description}</p></section>
+              <PlanReferences plan={trip} />
               <section><h4 className="d-flex align-items-center gap-2"><Tag size={18} color="var(--color-secondary)" /> Themes & Tags</h4><div className="d-flex flex-wrap gap-2">{trip.tags?.map(tag => <span key={tag} className="badge bg-secondary bg-opacity-25 border">{tag}</span>)}</div></section>
               <section>
                 <h4 className="mb-3">Trip Itinerary</h4>
@@ -134,6 +155,7 @@ const ExistingItineraryDetail = () => {
                                     </div>
                                     <div>
                                       <div className="fw-semibold">{act.name}</div>
+                                      {act.notes && <p className="small text-muted mb-1">{act.notes}</p>}
                                       <div className="text-muted small d-flex gap-2">
                                         <span className="badge bg-dark border border-secondary">{act.category}</span>
                                         {act.duration && <span>{Math.floor(act.duration / 60)}h {act.duration % 60}m</span>}
@@ -152,19 +174,19 @@ const ExistingItineraryDetail = () => {
                   </div>
                 ) : (
                   <div className="text-center p-5 rounded-3" style={{ background: 'rgba(0,0,0,0.15)' }}>
-                    <p className="text-muted mb-3">Copy this trip to import its timeline, accommodations, and budgets.</p>
-                    <button className="btn btn-outline-secondary" onClick={() => setIsWizardOpen(true)}>Fork to see details</button>
+                    <p className="text-muted mb-3">Copy this trip to import its activities and budget.</p>
+                    <button className="btn btn-outline-secondary" onClick={() => { if (!user) { navigate('/login'); return; } setConfig({ title: `${trip.title} (Copy)`, startDate: '', endDate: '', budget: trip.estimatedBudget || 0, includeActivities: true }); setStep(1); setIsWizardOpen(true); }}>Fork to see details</button>
                   </div>
                 )}
               </section>
             </div>
             <div className="col-md-4 d-flex flex-column gap-3">
-              <div className="card"><div className="card-body"><h6 className="mb-3">Created By</h6><Link to={`/user/${trip.author?._id || trip.author?.id || 'unknown'}`} className="d-flex align-items-center gap-3 text-decoration-none text-white"><img src={trip.author?.avatar || trip.authorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(trip.author?.name || trip.authorName || 'User')}`} alt={trip.author?.name || trip.authorName} className="rounded-circle" style={{ width: 50, height: 50, objectFit: 'cover' }} /><div><div className="fw-bold">{trip.author?.name || trip.authorName}</div><div className="small" style={{ color: 'var(--color-primary)' }}>View Profile</div></div></Link></div></div>
+              <div className="card"><div className="card-body"><h6 className="mb-3">Created By</h6><Link aria-disabled={!trip.author} style={!trip.author ? { pointerEvents: 'none' } : undefined} to={trip.author ? `/user/${trip.author?._id || trip.author?.id || trip.author}` : '#'} className="d-flex align-items-center gap-3 text-decoration-none text-white"><img src={trip.author?.avatar || trip.authorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(trip.author?.name || trip.authorName || 'User')}`} alt={trip.author?.name || trip.authorName} className="rounded-circle" style={{ width: 50, height: 50, objectFit: 'cover' }} /><div><div className="fw-bold">{trip.author?.name || trip.authorName}</div><div className="small" style={{ color: 'var(--color-primary)' }}>{trip.author ? 'View Profile' : 'Curated itinerary'}</div></div></Link></div></div>
               <div className="card">
                 <div className="card-body">
                   <h6 className="mb-3">Trip Overview</h6>
                   <div className="d-flex flex-column gap-3">
-                    <div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><Clock size={14} /> Duration</span><span className="fw-semibold">{trip.durationDays || trip.duration} Days</span></div>
+                    <div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><Clock size={14} /> Duration</span><span className="fw-semibold">{trip.durationDays || trip.duration} {(trip.durationDays || trip.duration) === 1 ? 'Day' : 'Days'}</span></div>
                     <div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><IndianRupee size={14} /> Budget</span><span className="fw-semibold">{trip.budget || trip.estimatedBudget} {trip.currency}</span></div>
                     <div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><Activity size={14} /> Difficulty</span><span className="fw-semibold">{trip.difficulty}</span></div>
                     <div className="d-flex justify-content-between"><span className="text-muted d-flex align-items-center gap-1"><List size={14} /> Activities</span><span className="fw-semibold">{trip.days?.reduce((sum, day) => sum + (day.activities?.length || 0), 0) || 0}</span></div>
@@ -173,20 +195,20 @@ const ExistingItineraryDetail = () => {
                 </div>
               </div>
 
-              {/* Source Document Section */}
+              {/* Export itinerary Section */}
               <div className="card border-primary bg-primary bg-opacity-10">
                 <div className="card-body">
                   <h6 className="mb-2 d-flex align-items-center gap-2 text-primary">
-                    <FileJson size={16} /> Source Document
+                    <FileJson size={16} /> Export itinerary
                   </h6>
                   <p className="text-muted small mb-3">
-                    Download the original structured itinerary file provided by the creator.
+                    Save this editable plan as JSON, including its sources and photo credit.
                   </p>
                   <button 
                     className="btn btn-sm btn-primary w-100 d-flex justify-content-center align-items-center gap-2"
                     onClick={handleDownloadSource}
                   >
-                    <Download size={14} /> Download Original File
+                    <Download size={14} /> Download itinerary
                   </button>
                 </div>
               </div>
@@ -256,7 +278,7 @@ const ExistingItineraryDetail = () => {
                   {step === 2 && (
                     <div className="animate-slide-left d-flex flex-column gap-3">
                       <p className="text-muted">Select what to import:</p>
-                      {[{key:'includeActivities',icon:<List size={18} color="var(--color-secondary)"/>,label:'Activities & Timeline',desc:'Daily schedule, maps, notes'},{key:'includeBookings',icon:<HomeIcon size={18} color="var(--color-accent)"/>,label:'Accommodations & Flights',desc:'Hotel bookings, flights'},{key:'includeExpenses',icon:<CreditCard size={18} color="var(--color-danger)"/>,label:'Original Expenses',desc:"Creator's logged expenses"}].map(item => (
+                      {[{key:'includeActivities',icon:<List size={18} color="var(--color-secondary)"/>,label:'Activities & Timeline',desc:'Daily schedule and notes'}].map(item => (
                         <div key={item.key} className="d-flex justify-content-between align-items-center p-3 rounded-3" style={{ background: 'rgba(255,255,255,0.05)' }}>
                           <div className="d-flex align-items-center gap-3">{item.icon}<div><div className="fw-bold">{item.label}</div><div className="text-muted small">{item.desc}</div></div></div>
                           <div className="form-check form-switch"><input className="form-check-input" type="checkbox" checked={config[item.key]} onChange={e => setConfig({...config, [item.key]: e.target.checked})} /></div>
@@ -275,8 +297,6 @@ const ExistingItineraryDetail = () => {
                           <div className="d-flex justify-content-between"><span className="text-muted">Budget</span><span>{config.budget} {trip.currency}</span></div>
                           <hr className="my-2" />
                           <div className="d-flex justify-content-between"><span className="text-muted">Activities</span><span>{config.includeActivities ? 'Yes' : 'No'}</span></div>
-                          <div className="d-flex justify-content-between"><span className="text-muted">Bookings</span><span>{config.includeBookings ? 'Yes' : 'No'}</span></div>
-                          <div className="d-flex justify-content-between"><span className="text-muted">Expenses</span><span>{config.includeExpenses ? 'Yes' : 'No'}</span></div>
                         </div>
                       </div>
                     </div>
@@ -284,7 +304,7 @@ const ExistingItineraryDetail = () => {
                 </div>
                 <div className="modal-footer">
                   {step > 1 && <button className="btn btn-outline-secondary" onClick={() => setStep(s => s - 1)}>Back</button>}
-                  {step < 3 ? <button className="btn btn-primary" onClick={() => setStep(s => s + 1)}>Next</button> : <button className="btn btn-success fw-bold" onClick={handleFork}>Create My Trip</button>}
+                  {step < 3 ? <button className="btn btn-primary" disabled={!config.title.trim() || !config.startDate || !config.endDate || config.endDate < config.startDate} onClick={() => setStep(s => s + 1)}>Next</button> : <button className="btn btn-success fw-bold" onClick={handleFork} disabled={isSaving}>{isSaving ? 'Creating...' : 'Create My Trip'}</button>}
                 </div>
               </div>
             </div>

@@ -1,3 +1,6 @@
+import PlanReferences from '../components/trip/PlanReferences';
+import TripImage from '../components/ui/TripImage';
+import { useTripPermissions } from '../hooks/useTripPermissions';
 import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { MapPin, Calendar, Users, Activity, Edit2, Trash2, Clock, IndianRupee, X, Globe, Lock } from 'lucide-react';
@@ -13,12 +16,13 @@ const TripDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { trips, deleteTrip, updateTrip } = useTrip();
-  const { publishTrip } = React.useContext(ExploreContext);
+  const { fetchPublicTrips } = React.useContext(ExploreContext);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const trip = trips?.find(t => (t._id || t.id) === id);
+  const { canManage, isOwner } = useTripPermissions(trip);
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -52,15 +56,13 @@ const TripDetail = () => {
     }); 
     setIsEditing(true); 
   };
-  const handleSaveEdit = (e) => {
+  const handleSaveEdit = async (e) => {
     e.preventDefault();
-    const processedForm = { ...editForm };
-    if (typeof processedForm.tags === 'string') processedForm.tags = processedForm.tags.split(',').map(t => t.trim()).filter(Boolean);
-    updateTrip(id, processedForm);
-    if (processedForm.visibility === 'public' && trip.visibility !== 'public') {
-      publishTrip({ id: trip._id || trip.id, title: processedForm.title, destination: processedForm.destination, author: { id: 'u1', name: 'Current User', avatar: 'https://i.pravatar.cc/150?u=u1' }, image: trip.image, budget: processedForm.budget, currency: trip.currency, durationDays: 7, difficulty: processedForm.difficulty || 'Moderate', tags: processedForm.tags || [], description: processedForm.description || '' });
-    }
-    setIsEditing(false);
+    try {
+      await updateTrip(id, editForm);
+      await fetchPublicTrips();
+      setIsEditing(false);
+    } catch { /* TripContext displays the error; keep the form open. */ }
   };
 
   return (
@@ -68,12 +70,12 @@ const TripDetail = () => {
       <div className="card" style={{ overflow: 'hidden' }}>
         {/* Hero */}
         <div className="position-relative" style={{ height: 300 }}>
-          <img src={trip.image} alt={trip.destination} className="w-100 h-100" style={{ objectFit: 'cover' }} />
+          <TripImage src={trip.image} alt={trip.destination} className="w-100 h-100" style={{ objectFit: 'cover' }} />
           <div className="position-absolute top-0 start-0 w-100 h-100" style={{ background: 'linear-gradient(to top, rgba(15,23,42,0.9) 0%, rgba(0,0,0,0.4) 100%)' }} />
           
           <div className="position-absolute top-0 end-0 m-3 d-flex gap-2">
-            <button className="btn btn-sm btn-outline-light d-flex align-items-center gap-1" onClick={handleEditClick}><Edit2 size={14} /> Edit</button>
-            <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onClick={() => setConfirmDelete(true)}><Trash2 size={14} /> Delete</button>
+            <button disabled={!canManage} className="btn btn-sm btn-outline-light d-flex align-items-center gap-1" onClick={handleEditClick}><Edit2 size={14} /> Edit</button>
+            <button disabled={!isOwner} className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onClick={() => { setConfirmDelete(true); }}><Trash2 size={14} /> Delete</button>
           </div>
 
           <div className="position-absolute bottom-0 start-0 end-0 p-4">
@@ -100,6 +102,7 @@ const TripDetail = () => {
         <div className="card-body p-4">
           <TripNav tripId={trip._id || trip.id} />
           
+          <PlanReferences plan={trip} />
           {/* Overview Grid */}
           <div className="row g-4">
             <div className="col-md-6">
@@ -117,7 +120,7 @@ const TripDetail = () => {
                   {trip.activityFeed?.length > 0 ? (
                     <div className="d-flex flex-column gap-3">
                       {trip.activityFeed.map((act) => (
-                        <div key={act.id} className="d-flex gap-2 align-items-start">
+                        <div key={act._id || act.id} className="d-flex gap-2 align-items-start">
                           <div className="rounded-circle mt-1" style={{ width: 8, height: 8, background: 'var(--color-primary)', flexShrink: 0 }} />
                           <div><span className="fw-semibold">{act.user}</span> {act.action}<div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(act.timestamp).toLocaleString()}</div></div>
                         </div>
@@ -175,7 +178,7 @@ const TripDetail = () => {
         </>
       )}
 
-      <ConfirmDialog isOpen={confirmDelete} title={`Delete "${trip?.title}"?`} message="This will permanently remove the trip and all data." confirmLabel="Delete Trip" onConfirm={() => { deleteTrip(id); navigate('/dashboard'); }} onCancel={() => setConfirmDelete(false)} />
+      <ConfirmDialog isOpen={confirmDelete} title={`Delete "${trip?.title}"?`} message="This will permanently remove the trip and all data." confirmLabel="Delete Trip" onConfirm={async () => { await deleteTrip(id); setConfirmDelete(false); navigate('/dashboard'); }} onCancel={() => { setConfirmDelete(false); }} />
     </div>
   );
 };

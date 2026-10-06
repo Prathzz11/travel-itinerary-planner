@@ -1,3 +1,4 @@
+const { controllerError } = require('../utils/controllerError');
 const Review = require('../models/Review');
 const Template = require('../models/Template');
 
@@ -9,7 +10,7 @@ const getReviewsForTemplate = async (req, res) => {
     const reviews = await Review.find({ templateId: req.params.templateId }).sort({ createdAt: -1 });
     res.json(reviews);
   } catch (error) {
-    res.status(500).json({ message: 'Server error fetching reviews' });
+    controllerError(res, error, 'Server error fetching reviews');
   }
 };
 
@@ -20,6 +21,8 @@ const addReview = async (req, res) => {
   try {
     const { rating, comment } = req.body;
     const templateId = req.params.templateId;
+
+    if (!(await Template.exists({ _id: templateId, isPublic: true }))) return res.status(404).json({ message: 'Public itinerary not found' });
 
     // Check if user already reviewed
     const existingReview = await Review.findOne({ templateId, author: req.user._id });
@@ -48,7 +51,7 @@ const addReview = async (req, res) => {
     res.status(201).json(review);
   } catch (error) {
     console.error('Error creating review:', error);
-    res.status(500).json({ message: 'Server error creating review' });
+    controllerError(res, error, 'Server error creating review');
   }
 };
 
@@ -67,8 +70,8 @@ const updateReview = async (req, res) => {
       return res.status(403).json({ message: 'User not authorized' });
     }
 
-    review.rating = req.body.rating || review.rating;
-    review.comment = req.body.comment || review.comment;
+    review.rating = req.body.rating ?? review.rating;
+    review.comment = req.body.comment ?? review.comment;
 
     const updatedReview = await review.save();
 
@@ -82,7 +85,7 @@ const updateReview = async (req, res) => {
 
     res.json(updatedReview);
   } catch (error) {
-    res.status(500).json({ message: 'Server error updating review' });
+    controllerError(res, error, 'Server error updating review');
   }
 };
 
@@ -117,7 +120,7 @@ const deleteReview = async (req, res) => {
 
     res.json({ message: 'Review removed' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error deleting review' });
+    controllerError(res, error, 'Server error deleting review');
   }
 };
 
@@ -149,7 +152,7 @@ const toggleHelpful = async (req, res) => {
     const updatedReview = await review.save();
     res.json(updatedReview);
   } catch (error) {
-    res.status(500).json({ message: 'Server error toggling helpful vote' });
+    controllerError(res, error, 'Server error toggling helpful vote');
   }
 };
 

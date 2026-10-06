@@ -20,7 +20,9 @@ axiosRetry(api, {
   retryDelay: axiosRetry.exponentialDelay, // Exponential back-off
   retryCondition: (error) => {
     // Retry on network errors or 5xx server errors
-    return axiosRetry.isNetworkOrIdempotentRequestError(error) || error.code === 'ECONNABORTED';
+    const method = error.config?.method?.toLowerCase();
+    return ['get', 'head', 'options'].includes(method) &&
+      (axiosRetry.isNetworkOrIdempotentRequestError(error) || error.code === 'ECONNABORTED');
   }
 });
 
@@ -46,7 +48,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    const originalRequest = error.config || { url: '' };
     // --- Error Logging ---
     logger.error('API Error response:', error);
 

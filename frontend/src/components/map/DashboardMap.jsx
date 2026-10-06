@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { Link } from 'react-router-dom';
 import { MapPin, Calendar, Clock, Compass } from 'lucide-react';
 import { formatTripDates, getTripDuration } from '../../utils/formatters';
+const MAP_LIBRARIES = ['places'];
 
 const containerStyle = { width: '100%', height: '100%', borderRadius: 'var(--radius-lg)' };
 
@@ -17,7 +18,7 @@ const DashboardMap = ({ trips = [] }) => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey || '',
-    libraries: ['places']
+    libraries: MAP_LIBRARIES
   });
 
   const [map, setMap] = useState(null);
