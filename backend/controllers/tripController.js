@@ -111,6 +111,8 @@ const updateTrip = async (req, res) => {
 
     if (req.body.currency !== undefined && req.body.currency !== trip.currency) return res.status(400).json({message: 'Trip currency is fixed after creation. Create a new trip to use a different currency.'});
 
+    if (req.body.image !== undefined && req.body.image !== trip.image) trip.imageCredit = null;
+
     const allowedFields = ['title', 'destination', 'startDate', 'endDate', 'image', 'budget', 'currency', 'visibility', 'status'];
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) trip[field] = req.body[field];

@@ -1,3 +1,4 @@
+import TripPhotoField from '../components/trip/TripPhotoField';
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, IndianRupee, Users, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
@@ -9,6 +10,8 @@ const CreateTrip = () => {
   const navigate = useNavigate();
   const { addTrip } = useTrip();
   const { user } = useAuth();
+  const [image, setImage] = useState('');
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,6 +38,7 @@ const CreateTrip = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (photoBusy || isSubmitting) return;
     if (step < 4) { nextStep(); return; }
     
     setIsSubmitting(true);
@@ -46,7 +50,7 @@ const CreateTrip = () => {
       
       const newTrip = {
         ...values, budget: Number(values.budget), spent: 0,
-        image: `https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=600&q=80`,
+        image,
         members: [creator], status: 'planning',
         activitiesCount: 0, activityFeed: [{ id: `af_${Date.now()}`, user: creator.name, action: 'created the trip', timestamp: new Date().toISOString() }]
       };
@@ -113,6 +117,7 @@ const CreateTrip = () => {
                     <input type="text" name="destination" className={`form-control ${touched.destination && errors.destination ? 'is-invalid' : ''}`} placeholder="Destination City/Country" value={values.destination} onChange={handleChange} onBlur={handleBlur} required />
                     {touched.destination && errors.destination && <div className="invalid-feedback">{errors.destination}</div>}
                   </div>
+                  <TripPhotoField value={image} onChange={setImage} onBusyChange={setPhotoBusy} disabled={isSubmitting} />
                 </div>
               )}
 
@@ -185,7 +190,7 @@ const CreateTrip = () => {
                 <button type="button" className="btn btn-outline-secondary d-flex align-items-center gap-1" onClick={prevStep} disabled={step === 1 || isSubmitting}>
                   <ChevronLeft size={18} /> Back
                 </button>
-                <button type="submit" className="btn btn-primary d-flex align-items-center gap-1" disabled={!isStepValid() || isSubmitting}>
+                <button type="submit" className="btn btn-primary d-flex align-items-center gap-1" disabled={!isStepValid() || isSubmitting || photoBusy}>
                   {isSubmitting ? (
                     <><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...</>
                   ) : (

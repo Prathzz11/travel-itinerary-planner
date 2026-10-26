@@ -15,7 +15,12 @@ async function main(){
  }
  try{
   const auth=await req('/auth/signup','POST',{name,email,password},201);token=auth.token;uid=auth.user.id;
-  const t=await req('/trips','POST',{title:name,destination:'Local test',startDate:'2027-01-01',endDate:'2027-01-03',budget:1000,currency:'INR'},201);tid=t._id;const base=`/trips/${tid}`;
+  const t=await req('/trips','POST',{title:name,destination:'Local test',startDate:'2027-01-01',endDate:'2027-01-03',budget:1000,currency:'INR',image:'https://example.test/initial-cover.jpg'},201);assert.equal(t.image,'https://example.test/initial-cover.jpg');tid=t._id;const base=`/trips/${tid}`;
+  const photo='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aM2QAAAAASUVORK5CYII=';
+  await req(base,'PUT',{image:photo});assert.equal((await req(base)).image,photo);
+  await req(base,'PUT',{image:'javascript:alert(1)'},400);
+  await req(base,'PUT',{image:'data:image/svg+xml;base64,PHN2Zy8+'},400);
+  await req(base,'PUT',{image:'https://example.test/updated-cover.jpg'});
   let days=(await req(base+'/itinerary')).days;assert.equal(days.length,3);
   days[0].activities.push({title:'Walk',duration:'1h 30m',lat:12.3,lng:45.6,images:['https://example.test/a.png'],completed:true});
   await req(base+'/itinerary','PUT',{days});days=(await req(base+'/itinerary')).days;
@@ -79,8 +84,9 @@ async function main(){
   await req(base+'/settlements/'+settlement._id,'DELETE');
   assert.equal((await ledger()).transactions[0].amount,120);
   await req(base,'PUT',{visibility:'public'});const templates=(await req('/itineraries?author='+uid)).templates;assert.equal(templates.length,1);
-  const published=await req('/itineraries/'+templates[0]._id);assert.equal(published.days[0].activities[0].name,'Edited walk');
-  const copy=await req('/trips/import','POST',{title:name+' copy',destination:'Copy',startDate:'2027-02-01',endDate:'2027-02-03',days:published.days,image:'https://example.test/photo.jpg',imageCredit:{name:'Test photographer',url:'https://example.test/photo',license:'Test'},sources:[{title:'Test guide',url:'https://example.test/guide'}],planningTips:['Plan transfers'],publishToExplore:false},201);cid=copy._id;assert.equal(copy.image,'https://example.test/photo.jpg');assert.equal(copy.sources[0].title,'Test guide');assert.equal(copy.planningTips[0],'Plan transfers');assert.equal((await req(`/trips/${cid}/itinerary`)).days[0].date,'2027-02-01');
+  const published=await req('/itineraries/'+templates[0]._id);assert.equal(published.image,'https://example.test/updated-cover.jpg');
+  await req(base,'PUT',{image:''});assert.equal((await req('/itineraries/'+templates[0]._id)).image,'');assert.equal(published.days[0].activities[0].name,'Edited walk');
+  const copy=await req('/trips/import','POST',{title:name+' copy',destination:'Copy',startDate:'2027-02-01',endDate:'2027-02-03',days:published.days,image:'https://example.test/photo.jpg',imageCredit:{name:'Test photographer',url:'https://example.test/photo',license:'Test'},sources:[{title:'Test guide',url:'https://example.test/guide'}],planningTips:['Plan transfers'],publishToExplore:false},201);cid=copy._id;assert.equal(copy.image,'https://example.test/photo.jpg');assert.equal(copy.sources[0].title,'Test guide');assert.equal(copy.planningTips[0],'Plan transfers');await req(`/trips/${cid}`,'PUT',{image:photo});assert.equal((await req(`/trips/${cid}`)).imageCredit,null);assert.equal((await req(`/trips/${cid}/itinerary`)).days[0].date,'2027-02-01');
   const review=await req('/reviews/template/'+published._id,'POST',{rating:4,comment:'Test review'},201);await req('/reviews/'+review._id,'PUT',{rating:5,comment:'Edited review'});assert.equal((await req('/reviews/'+review._id+'/helpful','PUT',{})).helpfulCount,1);await req('/reviews/'+review._id,'DELETE');
   await req(base,'PUT',{visibility:'private'});await req('/itineraries/'+published._id,'GET',undefined,404);
   if(process.env.MONGO_TRANSACTIONS==='required') {

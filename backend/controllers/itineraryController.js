@@ -101,7 +101,7 @@ function parseDuration(val) {
 const getPublicItineraries = async (req, res) => {
   try {
     const Template = require('../models/Template');
-    const { search, destination, tags, sort = '-createdAt', page = 1, limit = 20 } = req.query;
+    const { search, destination, tags, page = 1, limit = 20 } = req.query;
 
     const filter = { isPublic: true };
     if (req.query.author) filter.author = req.query.author;
@@ -121,10 +121,14 @@ const getPublicItineraries = async (req, res) => {
     if (!Number.isInteger(pageNumber) || pageNumber < 1 || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
       return res.status(400).json({ message: 'Page must be a positive integer; limit must be between 1 and 100' });
     }
+    let atlas;
+    try { atlas = require('../utils/atlasFilters').atlasFilters(req.query); }
+    catch (error) { return res.status(400).json({ message: error.message }); }
+    if (atlas.conditions.length) filter.$and = atlas.conditions;
     const skip = (pageNumber - 1) * pageSize;
 
     const [templates, total] = await Promise.all([
-      Template.find(filter).sort(sort).skip(skip).limit(Number(limit)),
+      Template.find(filter).sort(atlas.sort).skip(skip).limit(Number(limit)),
       Template.countDocuments(filter)
     ]);
 

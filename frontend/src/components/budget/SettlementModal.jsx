@@ -7,12 +7,12 @@ const localDate = value => { const d = value ? new Date(value) : new Date(); if 
 const SettlementModal = ({ onClose, onSave, tripMembers, currency, defaultTransaction, initialData }) => {
   const [form, setForm] = useState(() => {
     const canonical = id => memberId(tripMembers.find(m=>[memberId(m),String(m.user || '')].includes(String(id))));
-    return initialData ? {payerId:canonical(initialData.payerId),payeeId:canonical(initialData.payeeId),amount:initialData.amount,date:localDate(initialData.date),method:initialData.method || '',notes:initialData.notes || ''} : {payerId:defaultTransaction?.from.id || memberId(tripMembers[0]),payeeId:defaultTransaction?.to.id || memberId(tripMembers[1]),amount:defaultTransaction?.amount || '',date:localDate(),method:'',notes:''};
+    return initialData ? {payerId:canonical(initialData.payerId),payeeId:canonical(initialData.payeeId),amount:initialData.amount,date:localDate(initialData.date),method:initialData.method || '',notes:initialData.notes || ''} : {payerId:defaultTransaction?.from.id || '',payeeId:defaultTransaction?.to.id || '',amount:defaultTransaction?.amount || '',date:localDate(),method:'',notes:''};
   });
   const [requestId] = useState(() => crypto.randomUUID());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const update = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const update = e => { const { name, value } = e.target; setForm(prev => ({ ...prev, [name]: value, ...(name === 'payerId' && value === prev.payeeId ? { payeeId: '' } : {}) })); };
   const submit = async e => {
     e.preventDefault();
     if (saving) return;
@@ -27,10 +27,10 @@ const SettlementModal = ({ onClose, onSave, tripMembers, currency, defaultTransa
     <div className="modal-backdrop show" />
     <div className="modal d-block" role="dialog" aria-modal="true" aria-labelledby="payment-title">
       <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div className="modal-content">
-        <div className="modal-header"><h2 id="payment-title" className="modal-title fs-5">{initialData ? 'Edit payment' : 'Record payment'}</h2><button aria-label="Close" className="btn-close btn-close-white" disabled={saving} onClick={onClose} /></div>
+        <div className="modal-header"><h2 id="payment-title" className="modal-title fs-5">{initialData ? 'Edit payment' : 'Record a repayment'}</h2><button aria-label="Close" className="btn-close btn-close-white" disabled={saving} onClick={onClose} /></div>
         <form onSubmit={submit}>
           <div className="modal-body">
-            <p className="text-muted small">Record money already paid. This does not transfer money.</p>
+            <p className="text-muted small">Record a payment made outside TravelSync. No money is transferred here.</p>{defaultTransaction && <div className="alert alert-success py-2 small">{defaultTransaction.from.name} owes {defaultTransaction.to.name} {defaultTransaction.amount} {currency}. You can record a partial payment too.</div>}
             {error && <div role="alert" className="alert alert-danger">{error}</div>}
             <label className="form-label" htmlFor="payment-from">Who paid?</label>
             <select id="payment-from" name="payerId" className="form-select mb-3" value={form.payerId} onChange={update} required disabled={saving}><option value="">Choose a member</option>{tripMembers.map(m => <option key={memberId(m)} value={memberId(m)}>{m.name}</option>)}</select>

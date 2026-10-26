@@ -1,3 +1,4 @@
+import TripPhotoField from '../components/trip/TripPhotoField';
 import PlanReferences from '../components/trip/PlanReferences';
 import TripImage from '../components/ui/TripImage';
 import { useTripPermissions } from '../hooks/useTripPermissions';
@@ -17,6 +18,8 @@ const TripDetail = () => {
   const location = useLocation();
   const { trips, deleteTrip, updateTrip } = useTrip();
   const { fetchPublicTrips } = React.useContext(ExploreContext);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -58,11 +61,14 @@ const TripDetail = () => {
   };
   const handleSaveEdit = async (e) => {
     e.preventDefault();
+    if (saving || photoBusy) return;
+    setSaving(true);
     try {
       await updateTrip(id, editForm);
       await fetchPublicTrips();
       setIsEditing(false);
     } catch { /* TripContext displays the error; keep the form open. */ }
+    finally { setSaving(false); }
   };
 
   return (
@@ -137,16 +143,17 @@ const TripDetail = () => {
       {/* Edit Modal */}
       {isEditing && (
         <>
-          <div className="modal-backdrop show" style={{ backdropFilter: 'blur(4px)' }} onClick={() => setIsEditing(false)} />
+          <div className="modal-backdrop show" style={{ backdropFilter: 'blur(4px)' }} onClick={() => { if (!saving && !photoBusy) setIsEditing(false); }} />
           <div className="modal d-block" tabIndex="-1">
             <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
               <div className="modal-content animate-scale-in">
                 <div className="modal-header">
                   <h5 className="modal-title">Edit Trip</h5>
-                  <button type="button" className="btn-close btn-close-white" onClick={() => setIsEditing(false)} aria-label="Close"></button>
+                  <button type="button" className="btn-close btn-close-white" onClick={() => { if (!saving && !photoBusy) setIsEditing(false); }} aria-label="Close"></button>
                 </div>
                 <div className="modal-body">
                   <form id="editTripForm" onSubmit={handleSaveEdit}>
+                    <TripPhotoField value={editForm.image || ''} onChange={image=>setEditForm(prev=>({...prev,image}))} onBusyChange={setPhotoBusy} disabled={saving} />
                     <div className="mb-3"><label className="form-label text-muted">Trip Name</label><input type="text" className="form-control" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} required /></div>
                     <div className="mb-3"><label className="form-label text-muted">Destination</label><input type="text" className="form-control" value={editForm.destination} onChange={e => setEditForm({ ...editForm, destination: e.target.value })} required /></div>
                     <div className="row g-3 mb-3">
@@ -169,8 +176,8 @@ const TripDetail = () => {
                   </form>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-outline-secondary" onClick={() => setIsEditing(false)}>Cancel</button>
-                  <button type="submit" form="editTripForm" className="btn btn-primary">Save Changes</button>
+                  <button type="button" className="btn btn-outline-secondary" onClick={() => { if (!saving && !photoBusy) setIsEditing(false); }}>Cancel</button>
+                  <button type="submit" form="editTripForm" className="btn btn-primary" disabled={saving || photoBusy}>{saving ? 'Saving…' : 'Save Changes'}</button>
                 </div>
               </div>
             </div>

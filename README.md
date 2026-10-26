@@ -182,8 +182,20 @@ Run `npm run test:integration` against a development replica-set URI with `MONGO
 
 ## Payments and historical records
 
-Settle Up always exposes **Add expense**, **Record payment**, and **View all expenses** to trip editors. Use **Edit** on a recorded payment to correct its participants, amount, date, method, or note. Updates reject stale versions instead of overwriting another edit. The shared ledger updates Resource Allocation and Settle Up; payments do not reduce total trip spending.
+Settle Up uses a personal balance summary, **You / Whole group** views, group member balances, and **Payments / Expenses** history. Trip editors can **Add expense** or **Settle up**. The Settle up chooser opens a prefilled repayment form with an editable amount for partial payments; **Record a different payment** starts with blank participants. Use **Edit** on a recorded payment to correct its participants, amount, date, method, or note. Updates reject stale versions instead of overwriting another edit. The shared ledger updates Resource Allocation and Settle Up; payments do not reduce total trip spending.
 
 Old payment IDs must resolve to current trip members; a matching display name alone no longer counts as verification. Unresolvable records pause suggested payments and show a repair prompt. New expense splits use exact cents. Historical records should be backed up before repair; never infer missing participants merely from equal balances.
 
 Atlas copies retain photos, credits, guide links, and planning tips. Export itinerary creates JSON of the current editable plan, not a claim to download an original guide document. Budgets and visit durations remain illustrative.
+
+## Trip cover photos
+
+Choose a photo in the first step of New Trip, or open a trip and select **Edit** to replace or remove its cover. Supports JPG, PNG and WebP files up to 2 MB, plus HTTP(S) image links. Uploaded images are stored with the trip in MongoDB; no external upload service is required. The preview is saved only when you create the trip or select Save Changes. Photo files are not retained in the new-trip browser draft. Public trip cover updates also update the associated Atlas template; replacing a sourced photo clears its old credit.
+
+## Atlas filters
+
+The Atlas supports National (India) and International destination filters, total-budget limits, a budget currency selector, and lowest-budget sorting. These run on the API before pagination and combine with search/destination filters. Budget filtering and sorting include only positive estimates in the selected currency; no exchange-rate conversion is performed. Region classification uses recognized destination names in `backend/utils/atlasFilters.js`; unknown destinations remain visible under All destinations. Extend this mapping when adding new destinations. Reset clears all filters and returns to page 1.
+
+## Mini-project report
+
+The [TravelSync mini-project report](output/pdf/TravelSync_Mini_Project_Report.pdf) covers the problem statement, objectives, modules, process flow, and implementation screenshots, including Atlas region and budget filters. The cover leaves space for four group members and includes the GitHub repository link.

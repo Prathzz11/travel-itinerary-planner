@@ -49,3 +49,17 @@ Browser mutations used an isolated temporary account and trip. Existing personal
 - Manually opened all four repaired Settle Up pages: valid suggestions and no data warnings. Checked Goa Budget totals and balances against Settle Up. Opened Add expense, Record payment, and legacy Edit dialogs without changing real records through the UI.
 - Verified all six curated photos loaded as remote images (not fallback placeholders); checked Kyoto guide links, credits, planning tips, and activity notes in the browser.
 - Final verification: `npm run check` passed and `npm run test:integration` passed 100 HTTP/MongoDB checks.
+
+## October 6: Splitwise-style settlement view
+
+- Replaced the flat payment list with personal balance cards, You/Whole group filters, group balances, and Payments/Expenses activity views.
+- Settle up opens a balance chooser; each row also opens its prefilled repayment form directly. Partial amounts remain editable. Unspecified payments start with blank participants, and selecting a payer clears an identical payee.
+- Browser checks: settled state on Tokyo, outstanding Nainital balance, chooser, correct participants/amount, cancel, group view and expense-history switching. Existing financial records were not changed for UI testing.
+- Validation: `npm run check` and 100 HTTP/MongoDB integration checks passed.
+- Interaction reference: [Splitwise getting started](https://kb.splitwise.com/getting-started/how-do-i-use-splitwise) and [Simplify Debts](https://kb.splitwise.com/balances-and-expenses/what-is-simplify-debts). TravelSync records repayments and does not initiate transfers.
+
+## Trip cover photo controls
+
+- Shared photo control in New Trip and Edit Trip: choose file, paste URL, preview, replace and remove. JPG/PNG/WebP uploads are capped at 2 MB and validated on the server.
+- Browser verified creation control, existing cover preview, remove and cancel. No user cover was changed during the UI check.
+- Integration verifies create/update persistence, invalid image rejection, cover removal reflected in Atlas, and old credit removal. `npm run check` passed; integration passed 109 checks.

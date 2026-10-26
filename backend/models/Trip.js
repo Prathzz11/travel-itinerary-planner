@@ -43,7 +43,7 @@ const tripSchema = new mongoose.Schema({
   },
   startDate: { type: Date, required: [true, 'Start date is required'] },
   endDate: { type: Date, required: [true, 'End date is required'] },
-  image: { type: String, default: '' },
+  image: { type: String, default: '', validate: { validator: require('../utils/tripImage').validTripImage, message: 'Use an HTTP(S) photo URL or a JPG, PNG or WebP image up to 2 MB' } },
   imageCredit: { name: String, url: String, license: String },
   sources: [{ title: String, url: String, _id: false }],
   planningTips: [String],
